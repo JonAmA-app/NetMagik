@@ -1,8 +1,7 @@
-
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Monitor, Shield, Globe, Download, Upload, Maximize, Heart, Palette, Bell, Volume2, Lock, HelpCircle } from 'lucide-react';
+import { X, Monitor, Shield, Globe, Download, Upload, Maximize, Palette, Bell, Volume2, Lock, HelpCircle } from 'lucide-react';
 import { AppSettings, Language, Theme } from '../types';
-import { TRANSLATIONS, APP_VERSION, DONATION_URL } from '../constants';
+import { TRANSLATIONS, APP_VERSION } from '../constants';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -506,15 +505,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {t.developedBy || "Developed by"} <span className="text-theme-brand-primary font-bold">JonAmA</span>
             </p>
           </div>
-          <a
-            href={DONATION_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="p-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
-            title={t.supportDonate || t.donate}
-          >
-            <Heart size={14} className="fill-current" />
-          </a>
         </div>
       </div>
     </div>

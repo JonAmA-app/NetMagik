@@ -3,7 +3,7 @@ import { IpType, NetworkInterface, Profile, ClipboardSnippet, DeviceCredential }
 
 // Shared application version constant
 export const APP_VERSION = '1.0.0';
-export const DONATION_URL = 'https://paypal.me/JONAMA_PLACEHOLDER';
+export const DONATION_URL = 'https://donate.stripe.com/8x25kDae2grLgkZd914sE00-';
 
 export const INITIAL_INTERFACES: NetworkInterface[] = [];
 

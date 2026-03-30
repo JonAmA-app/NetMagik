@@ -9,7 +9,7 @@ import {
 
 import {
   INITIAL_PROFILES, INITIAL_SNIPPETS, INITIAL_CREDENTIALS,
-  TRANSLATIONS, APP_VERSION, DONATION_URL
+  TRANSLATIONS, APP_VERSION
 } from './constants';
 import {
   Profile, IpType, AppSettings,
@@ -21,6 +21,7 @@ import { InterfaceCard } from './components/InterfaceCard';
 import { ProfileList } from './components/ProfileList';
 import { CreateProfileForm } from './components/CreateProfileForm';
 import { SettingsModal } from './components/SettingsModal';
+import { DonationModal } from './components/DonationModal';
 import { ConnectivityHub } from './components/ConnectivityHub';
 import { ClipboardManager } from './components/ClipboardManager';
 import { NetworkScanner } from './components/NetworkScanner';
@@ -191,6 +192,7 @@ const App: React.FC = () => {
 
   // Global Search & Theme
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  const [isDonationOpen, setIsDonationOpen] = useState(false);
 
   useEffect(() => {
     const currentTheme = settings.theme || 'dark';
@@ -707,7 +709,7 @@ const App: React.FC = () => {
           {/* Footer Area - FIXED */}
           <div className="p-4 bg-theme-bg-primary border-t border-theme-border-secondary space-y-1">
             <button
-              onClick={() => window.open(DONATION_URL, '_blank')}
+              onClick={() => setIsDonationOpen(true)}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-all text-sm font-bold"
             >
               <Heart size={18} />
@@ -1234,6 +1236,8 @@ const App: React.FC = () => {
 
       </div>
 
+
+      <DonationModal isOpen={isDonationOpen} onClose={() => setIsDonationOpen(false)} />
 
       {/* Easter Egg Tracker Component placed directly inside the main wrapper */}
       <EasterEggTracker theme={settings.theme} language={settings.language} />
