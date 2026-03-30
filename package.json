@@ -1,0 +1,90 @@
+{
+  "name": "netmajik-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A modern network interface manager",
+  "author": "JonAmA",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "electron": "electron .",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "@types/d3": "^7.4.3",
+    "d3": "^7.9.0",
+    "lucide-react": "^0.474.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.19",
+    "electron": "^40.2.1",
+    "electron-builder": "^26.7.0",
+    "png-to-ico": "^3.0.1",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.2.2",
+    "vite": "^7.3.1"
+  },
+  "build": {
+    "appId": "com.netmajik.desktop",
+    "productName": "NetMajik",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg",
+      "icon": "public/Dark.PNG"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/dark_icon.ico",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "perMachine": true,
+      "installerIcon": "public/dark_icon.ico",
+      "uninstallerIcon": "public/dark_icon.ico",
+      "shortcutName": "NetMajik",
+      "installerLanguages": ["en-US", "es-ES", "pt-PT", "de-DE", "fr-FR", "zh-CN", "ja-JP"],
+      "multiLanguageInstaller": true,
+      "license": "public/eula.txt"
+    },
+    "appx": {
+      "applicationId": "NetMajik",
+      "identityName": "JonAmA.NetMajik",
+      "publisher": "CN=JonAmA",
+      "publisherDisplayName": "JonAmA",
+      "backgroundColor": "#0f172a",
+      "languages": [
+        "en-US",
+        "es-ES"
+      ]
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "public/Dark.PNG",
+      "category": "Utility"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+ENDNUTZER-LIZENZVEREINBARUNG (EULA) FÜR NETMAJIK
+
+BITTE LESEN SIE DIESE ENDNUTZER-LIZENZVEREINBARUNG ("EULA") SORGFÄLTIG DURCH, BEVOR SIE DIE NETMAJIK-ANWENDUNG ("DIE ANWENDUNG") INSTALLIEREN ODER VERWENDEN. DURCH DIE INSTALLATION ODER VERWENDUNG DER ANWENDUNG ERKLÄREN SIE SICH MIT DEN BEDINGUNGEN DIESER EULA EINVERSTANDEN.
+
+1. LIZENZGEWÄHRUNG
+Der Autor von NETMAJIK gewährt Ihnen eine persönliche, nicht exklusive und nicht übertragbare Lizenz zur Installation und Nutzung der Anwendung für persönliche oder kommerzielle Zwecke in Übereinstimmung mit den Bedingungen dieser Vereinbarung.
+
+2. EINSCHRÄNKUNGEN
+Sie dürfen nicht:
+a) Die Anwendung modifizieren, übersetzen, zurückentwickeln, dekompilieren oder disassemblieren.
+b) Die Anwendung vermieten, verleasen, unterlizenzieren oder vorübergehend an Dritte übertragen.
+c) Urheberrechts- oder Eigentumshinweise entfernen, ändern oder unkenntlich machen.
+
+3. HAFTUNGSAUSSCHLUSS
+Die Anwendung wird "WIE BESEHEN" bereitgestellt, ohne ausdrückliche oder stillschweigende Garantie jeglicher Art, einschließlich, aber nicht beschränkt auf Garantien der Marktgängigkeit, der Eignung für einen bestimmten Zweck und der Nichtverletzung von Rechten Dritter. In keinem Fall haftet der Autor für Ansprüche, Schäden oder andere Haftungen, sei es aus einer Vertragsverletzung, unerlaubter Handlung oder anderweitig, die sich aus oder in Verbindung mit der Anwendung oder der Nutzung oder anderen Interaktionen in der Anwendung ergeben.
+
+4. DATENSCHUTZ UND DATENERFASSUNG
+NETMAJIK wird lokal auf Ihrem Gerät ausgeführt und speichert seine Konfiguration lokal.
+
+5. BEENDIGUNG
+Diese Lizenz ist gültig, bis sie von Ihnen gekündigt wird. Sie können sie jederzeit kündigen, indem Sie die Anwendung deinstallieren und alle Kopien in Ihrem Besitz oder unter Ihrer Kontrolle vernichten. Diese Lizenz endet auch automatisch, wenn Sie eine Bedingung dieser Vereinbarung nicht einhalten.
+
+DURCH DIE INSTALLATION DER SOFTWARE BESTÄTIGEN SIE, DASS SIE DIESE VEREINBARUNG GELESEN UND VERSTANDEN HABEN UND MIT IHREN BEDINGUNGEN EINVERSTANDEN SIND.

@@ -1,0 +1,23 @@
+CONTRAT DE LICENCE UTILISATEUR FINAL (CLUF) POUR NETMAJIK
+
+VEUILLEZ LIRE ATTENTIVEMENT CE CONTRAT DE LICENCE UTILISATEUR FINAL ("CLUF") AVANT D'INSTALLER OU D'UTILISER L'APPLICATION NETMAJIK ("L'APPLICATION"). EN INSTALLANT OU EN UTILISANT L'APPLICATION, VOUS ACCEPTEZ D'ÊTRE LIÉ PAR LES TERMES DE CE CLUF.
+
+1. OCTROI DE LICENCE
+L'auteur de NETMAJIK vous accorde une licence personnelle, non exclusive et non transférable pour installer et utiliser l'Application à des fins personnelles ou commerciales, conformément aux termes de ce contrat.
+
+2. RESTRICTIONS
+Vous ne pouvez pas :
+a) Modifier, traduire, faire de l'ingénierie inverse, décompiler ou désassembler l'Application.
+b) Louer, donner à bail, sous-licencier ou transférer temporairement l'Application à des tiers.
+c) Supprimer, modifier ou masquer tout avis de propriété ou de droit d'auteur.
+
+3. EXCLUSION DE RESPONSABILITÉ
+L'Application est fournie "TELLE QUELLE", sans garantie d'aucune sorte, expresse ou implicite, y compris, mais sans s'y limiter, les garanties de qualité marchande, d'adéquation à un usage particulier et de non-contrefaçon. En aucun cas, l'auteur ne sera responsable de toute réclamation, dommage ou autre responsabilité, que ce soit dans le cadre d'une action contractuelle, délictuelle ou autre, découlant de ou en relation avec l'Application ou l'utilisation ou d'autres transactions dans l'Application.
+
+4. CONFIDENTIALITÉ ET COLLECTE DE DONNÉES
+NETMAJIK fonctionne et stocke sa configuration localement sur votre appareil.
+
+5. RÉSILIATION
+Cette licence est en vigueur jusqu'à ce qu'elle soit résiliée par vous. Vous pouvez la résilier à tout moment en désinstallant l'Application et en détruisant toutes les copies en votre possession ou sous votre contrôle. Cette licence sera également résiliée automatiquement si vous ne respectez pas l'un des termes ou conditions de ce contrat.
+
+EN INSTALLANT LE LOGICIEL, VOUS RECONNAISSEZ AVOIR LU CE CONTRAT, LE COMPRENDRE ET ACCEPTER D'ÊTRE LIÉ PAR SES TERMES ET CONDITIONS.

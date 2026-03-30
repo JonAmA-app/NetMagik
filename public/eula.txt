@@ -1,0 +1,23 @@
+END USER LICENSE AGREEMENT (EULA) FOR NETMAJIK
+
+PLEASE READ THIS END USER LICENSE AGREEMENT ("EULA") CAREFULLY BEFORE INSTALLING OR USING THE NETMAJIK APPLICATION ("THE APPLICATION"). BY INSTALLING OR USING THE APPLICATION, YOU AGREE TO BE BOUND BY THE TERMS OF THIS EULA.
+
+1. LICENSE GRANT
+The author of NETMAJIK grants you a personal, non-exclusive, and non-transferable license to install and use the Application for personal or commercial purposes, in accordance with the terms of this agreement.
+
+2. RESTRICTIONS
+You may not:
+a) Modify, translate, reverse engineer, decompile, or disassemble the Application.
+b) Rent, lease, sublicense, or temporarily transfer the Application to third parties.
+c) Remove, alter, or obscure any proprietary or copyright notices.
+
+3. DISCLAIMER OF LIABILITY
+The Application is provided "AS IS", without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose and non-infringement. In no event shall the author be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from or in connection with the Application or the use or other dealings in the Application.
+
+4. PRIVACY AND DATA COLLECTION
+NETMAJIK operates and stores its configuration locally on your device.
+
+5. TERMINATION
+This license is effective until terminated by you. You may terminate it at any time by uninstalling the Application and destroying all copies in your possession or control. This license will also terminate automatically if you fail to comply with any term or condition of this agreement.
+
+BY INSTALLING THE SOFTWARE, YOU ACKNOWLEDGE THAT YOU HAVE READ THIS AGREEMENT, UNDERSTAND IT, AND AGREE TO BE BOUND BY ITS TERMS AND CONDITIONS.

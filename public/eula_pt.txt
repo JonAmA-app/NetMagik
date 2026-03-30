@@ -1,0 +1,23 @@
+ACORDO DE LICENÇA DE USUÁRIO FINAL (EULA) PARA NETMAJIK
+
+LEIA ATENTAMENTE ESTE ACORDO DE LICENÇA DE USUÁRIO FINAL ("EULA") ANTES DE INSTALAR OU USAR O APLICATIVO NETMAJIK ("O APLICATIVO"). AO INSTALAR OU USAR O APLICATIVO, VOCÊ CONCORDA EM SE VINCULAR AOS TERMOS DESTE EULA.
+
+1. CONCESSÃO DE LICENÇA
+O autor do NETMAJIK concede a você uma licença pessoal, não exclusiva e intransferível para instalar e usar o Aplicativo para fins pessoais ou comerciais, de acordo com os termos deste acordo.
+
+2. RESTRIÇÕES
+Você não pode:
+a) Modificar, traduzir, fazer engenharia reversa, descompilar ou desmontar o Aplicativo.
+b) Alugar, arrendar, sublicenciar ou transferir temporariamente o Aplicativo a terceiros.
+c) Remover, alterar ou ocultar quaisquer avisos de propriedade ou direitos autorais.
+
+3. ISENÇÃO DE RESPONSABILIDADE
+O Aplicativo é fornecido "COMO ESTÁ", sem garantia de qualquer tipo, expressa ou implícita, incluindo, mas não se limitando a garantias de comercialização, adequação a uma finalidade específica e não violação. Em nenhum caso o autor será responsável por qualquer reclamação, danos ou outra responsabilidade, seja em uma ação de contrato, ato ilícito ou de outra forma, decorrente de ou em conexão com o Aplicativo ou o uso ou outras negociações no Aplicativo.
+
+4. PRIVACIDADE E COLETA DE DADOS
+O NETMAJIK opera e armazena sua configuração localmente em seu dispositivo.
+
+5. RESCISÃO
+Esta licença é efetiva até que você a rescinda. Você pode rescindi-la a qualquer momento desinstalando o Aplicativo e destruindo todas as cópias em sua posse ou controle. Esta licença também será rescindida automaticamente se você não cumprir qualquer termo ou condição deste acordo.
+
+AO INSTALAR O SOFTWARE, VOCÊ RECONHECE QUE LEU ESTE ACORDO, O ENTENDE E CONCORDA EM SE VINCULAR AOS SEUS TERMOS E CONDIÇÕES.
