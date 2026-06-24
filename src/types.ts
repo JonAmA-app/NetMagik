@@ -1,7 +1,11 @@
-
 export enum IpType {
   DHCP = 'DHCP',
   STATIC = 'Static'
+}
+
+export interface AdditionalIpConfig {
+  ipAddress: string;
+  subnetMask: string;
 }
 
 export interface IpConfig {
@@ -10,12 +14,14 @@ export interface IpConfig {
   gateway: string;
   dnsPrimary: string;
   dnsSecondary: string;
+  additionalIps?: AdditionalIpConfig[];
 }
 
 export interface Profile {
   id: string;
   name: string;
   type: IpType;
+  folder?: string;          // Optional grouping folder name
   config?: IpConfig;
   devices?: ProfileDevice[];
   lastScanDate?: string;
@@ -59,8 +65,10 @@ export interface NetworkInterface {
   currentProfileId?: string;
   macAddress: string;
   currentIp: string;
+  allIps?: string[];
   netmask: string;
   gateway?: string;
+  isVirtual?: boolean;
 }
 
 export interface ClipboardSnippet {
@@ -94,8 +102,6 @@ export interface PingHistory {
   latency: number;
 }
 
-
-
 export interface PublicIpInfo {
   query: string;
   isp: string;
@@ -126,6 +132,16 @@ export interface ExternalApp {
   path: string;
   iconName: string;
   iconData?: string; // Base64 data of the original icon
+}
+
+export interface IpRangePreset {
+  id: string;
+  label: string;
+  startIp: string;
+  endIp: string;
+  gateway: string;
+  mask: string;
+  color?: string; // optional accent color class
 }
 
 export interface StorageInfo {
@@ -187,6 +203,7 @@ export interface AppSettings {
   systemNotifications: boolean;
   notificationSound: boolean;
   monitorSystemEvents: boolean;
+  launcherTrigger?: 'click' | 'hover';
 }
 
 declare global {
@@ -210,6 +227,7 @@ declare global {
       toggleInterface: (payload: { ifaceName: string, enable?: boolean, action?: string }) => Promise<any>;
       changeIpConfig: (payload: { ifaceName: string, profile: any }) => Promise<any>;
       findAndSetIp: (payload: { ifaceName: string, targetIp: string }) => Promise<any>;
+      findFreeIpAndAssign: (payload: { ifaceName: string, startIp: string, endIp: string, gateway?: string, subnetMask?: string }) => Promise<any>;
       executeNetworkCommand: (payload: { command: string, params?: any }) => Promise<any>;
       pingTarget: (payload: { ip: string }) => Promise<any>;
       scanRange: (payload: { startIp: string, endIp: string }) => Promise<any>;
@@ -218,7 +236,9 @@ declare global {
       checkPort: (payload: { host: string, port: number }) => Promise<boolean>;
       openExternalCmd: (payload: { targetIp: string }) => Promise<any>;
       toggleFirewall: (payload: { action: string }) => Promise<any>;
-      getSystemStats: () => Promise<any>;
+      wakeOnLan: (payload: { mac: string, broadcastIp?: string }) => Promise<{ success: boolean, error?: string }>;
+      runSpeedTest: () => Promise<{ success: boolean, mbps?: number, duration?: number, error?: string }>;
+      getSystemStats: (options?: { forceRefresh?: boolean }) => Promise<any>;
       getSystemEvents: () => Promise<any>;
       openEventViewer: () => Promise<any>;
       getInstalledPrograms: () => Promise<any[]>;
@@ -238,5 +258,4 @@ declare global {
       removeListeners: (channel: string) => void;
     };
   }
-
 }

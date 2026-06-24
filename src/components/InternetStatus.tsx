@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Language, PublicIpInfo } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { Globe, MapPin, Building, RefreshCw, Zap, Server } from 'lucide-react';
+import { Globe, MapPin, Building, RefreshCw, Zap, Server, Activity, Download } from 'lucide-react';
 
 interface InternetStatusProps {
   language: Language;
@@ -19,6 +19,11 @@ export const InternetStatus: React.FC<InternetStatusProps> = ({ language }) => {
   const [latencyHistory, setLatencyHistory] = useState<number[]>([]);
   const [currentPing, setCurrentPing] = useState(0);
   const [jitter, setJitter] = useState(0);
+
+  // Speed Test States
+  const [isSpeedTesting, setIsSpeedTesting] = useState(false);
+  const [speedResult, setSpeedResult] = useState<number | null>(null);
+  const [speedError, setSpeedError] = useState<string | null>(null);
 
   const fetchPublicInfo = async () => {
     setLoading(true);
@@ -83,6 +88,28 @@ export const InternetStatus: React.FC<InternetStatusProps> = ({ language }) => {
     }, 800);
   };
 
+  const startSpeedTest = async () => {
+    setIsSpeedTesting(true);
+    setSpeedResult(null);
+    setSpeedError(null);
+    try {
+      if (window.electronAPI) {
+        const res = await window.electronAPI.runSpeedTest();
+        if (res.success) {
+          setSpeedResult(res.mbps || 0);
+        } else {
+          setSpeedError(res.error || t.failedToFetchData);
+        }
+      } else {
+        setSpeedError("Electron API not available");
+      }
+    } catch (e: any) {
+      setSpeedError(e.message);
+    } finally {
+      setIsSpeedTesting(false);
+    }
+  };
+
   useEffect(() => {
     fetchPublicInfo();
   }, []);
@@ -112,7 +139,7 @@ export const InternetStatus: React.FC<InternetStatusProps> = ({ language }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Public IP Card */}
         <div className="bg-theme-bg-secondary p-6 rounded-xl border border-theme-border-primary shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -216,6 +243,41 @@ export const InternetStatus: React.FC<InternetStatusProps> = ({ language }) => {
             </div>
           </div>
         </div>
+
+        {/* Speed Test Card */}
+        <div className="bg-theme-bg-secondary p-6 rounded-xl border border-theme-border-primary shadow-sm relative overflow-hidden flex flex-col group">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Download size={64} />
+          </div>
+          <div className="flex justify-between items-center mb-4 relative z-10">
+            <h3 className="text-sm font-semibold text-theme-text-muted uppercase tracking-wider">Speed Test</h3>
+            {!isSpeedTesting && (
+              <button onClick={startSpeedTest} className="text-xs text-theme-brand-primary hover:underline">{t.runTest}</button>
+            )}
+          </div>
+          
+          <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+             {isSpeedTesting ? (
+                <div className="flex flex-col items-center justify-center space-y-4">
+                   <div className="w-16 h-16 border-4 border-theme-bg-tertiary border-t-theme-brand-primary rounded-full animate-spin"></div>
+                   <span className="text-theme-text-muted text-xs animate-pulse">Testing Download Speed...</span>
+                </div>
+             ) : speedResult !== null ? (
+                <div className="text-center">
+                   <div className="text-4xl font-bold text-emerald-500 mb-1">{speedResult}</div>
+                   <div className="text-xs text-theme-text-muted uppercase tracking-widest font-bold">Mbps</div>
+                </div>
+             ) : speedError ? (
+                <div className="text-xs text-rose-500 text-center bg-rose-500/10 p-2 rounded-lg border border-rose-500/20">{speedError}</div>
+             ) : (
+                <div className="text-center text-theme-text-muted">
+                   <Activity size={32} className="mx-auto mb-2 opacity-30" />
+                   <div className="text-xs">Click Run Test to measure bandwidth</div>
+                </div>
+             )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

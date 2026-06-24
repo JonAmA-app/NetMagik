@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NetworkInterface, Profile, PingTarget, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { getSubnetDetails } from '../utils';
-import { Play, Square, Plus, List, ArrowRightLeft, Activity, ExternalLink, Terminal, Trash2 } from 'lucide-react';
+import { Play, Square, Plus, List, ArrowRightLeft, Activity, ExternalLink, Terminal, Trash2, Maximize2, Minimize2, Bell, BellOff } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface PingManagerProps {
     iface: NetworkInterface;
@@ -14,9 +15,12 @@ interface PingManagerProps {
 
 export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targets, setTargets }) => {
     const t = TRANSLATIONS[language] || TRANSLATIONS['en'];
+    const { success } = useToast();
     const [mode, setMode] = useState<'list' | 'range'>('list');
     const [isRunning, setIsRunning] = useState(false);
     const [manualIp, setManualIp] = useState('');
+    const [isZenMode, setIsZenMode] = useState(false);
+    const [soundAlerts, setSoundAlerts] = useState(false);
 
     // Range State
     const [rangeStart, setRangeStart] = useState('');
@@ -110,6 +114,26 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
                         const historyVal = res.status === 'active' ? res.latency : -1;
                         const newHistory = [...pt.history, historyVal];
                         if (newHistory.length > 20) newHistory.shift();
+
+                        // Sound alert if coming back online
+                        if (soundAlerts && (pt.status === 'timeout' || pt.status === 'unreachable') && res.status === 'active') {
+                            try {
+                                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                                const osc = ctx.createOscillator();
+                                const gain = ctx.createGain();
+                                osc.type = 'sine';
+                                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                                osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+                                gain.gain.setValueAtTime(0, ctx.currentTime);
+                                gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+                                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                                osc.connect(gain);
+                                gain.connect(ctx.destination);
+                                osc.start();
+                                osc.stop(ctx.currentTime + 0.3);
+                                success(`${pt.ip} is back online!`, `${res.latency}ms latency`);
+                            } catch (e) {}
+                        }
 
                         return {
                             ...pt,
@@ -232,14 +256,15 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
     };
 
     return (
-        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
+        <div className={`space-y-6 animate-in slide-in-from-bottom-2 duration-500 ${isZenMode ? 'fixed inset-0 z-50 bg-theme-bg-primary p-6 m-0 h-screen w-screen overflow-hidden flex flex-col' : ''}`}>
 
             {/* Configuration Panel */}
+            {!isZenMode && (
             <div className="bg-theme-bg-secondary border border-theme-border-primary rounded-xl p-5 shadow-sm">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-theme-bg-tertiary text-theme-brand-primary rounded-lg">
-                            <Activity size={20} />
+                        <div className={`p-2.5 rounded-lg transition-colors ${isRunning ? 'bg-emerald-500/10 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-theme-bg-tertiary text-theme-brand-primary'}`}>
+                            <Activity size={20} className={isRunning ? 'animate-ekg' : ''} />
                         </div>
                         <div>
                             <h3 className="font-bold text-theme-text-primary">{t.pingTool}</h3>
@@ -316,12 +341,18 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
                     )}
                 </div>
             </div>
+            )}
 
             {/* Results Table */}
-            <div className="bg-theme-bg-secondary border border-theme-border-primary rounded-xl overflow-hidden shadow-sm flex flex-col min-h-[300px]">
+            <div className={`bg-theme-bg-secondary border border-theme-border-primary rounded-xl overflow-hidden shadow-sm flex flex-col ${isZenMode ? 'flex-1 h-full' : 'min-h-[300px]'}`}>
                 <div className="p-4 border-b border-theme-border-secondary flex items-center justify-between bg-theme-bg-tertiary">
-                    <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-theme-text-primary">{t.pingResults}</h4>
+                    <div className="flex items-center gap-3">
+                        <h4 className="font-semibold text-theme-text-primary flex items-center gap-2">
+                            {t.pingResults}
+                            {isRunning && (
+                                <Activity size={16} className="text-emerald-500 animate-ekg ml-1" />
+                            )}
+                        </h4>
                         <span className="text-xs bg-theme-bg-primary px-2 py-0.5 rounded-full text-theme-text-secondary">{targets.length}</span>
                     </div>
                     <div className="flex gap-2">
@@ -336,7 +367,14 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
                                 {t.startPing}
                             </button>
                         )}
-                        <button onClick={clearAll} className="px-3 py-1.5 text-theme-text-muted hover:bg-theme-bg-hover rounded-lg text-xs transition-colors">
+                        <div className="w-px h-4 bg-theme-border-secondary mx-1" />
+                        <button onClick={() => setSoundAlerts(!soundAlerts)} className={`p-1.5 rounded-lg transition-colors ${soundAlerts ? 'text-emerald-500 bg-emerald-500/10' : 'text-theme-text-muted hover:bg-theme-bg-hover'}`} title="Sound Alerts on Recovery">
+                            {soundAlerts ? <Bell size={14} /> : <BellOff size={14} />}
+                        </button>
+                        <button onClick={() => setIsZenMode(!isZenMode)} className={`p-1.5 rounded-lg transition-colors ${isZenMode ? 'text-theme-brand-primary bg-theme-brand-primary/10' : 'text-theme-text-muted hover:bg-theme-bg-hover'}`} title="Zen Mode">
+                            {isZenMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                        </button>
+                        <button onClick={clearAll} className="px-3 py-1.5 text-theme-text-muted hover:bg-theme-bg-hover rounded-lg text-xs transition-colors ml-1">
                             {t.clearAll}
                         </button>
                     </div>
@@ -362,15 +400,40 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
                                         <div className={`inline-flex items-center justify-center w-3 h-3 rounded-full shadow-sm ${getStatusColor(target.status)} ${target.status === 'active' ? 'animate-pulse' : ''}`} title={target.status} />
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="flex items-end gap-0.5 h-6 opacity-80 justify-center">
+                                        <div className="flex items-center justify-center h-8 w-full">
                                             {target.history.length === 0 ? (
                                                 <span className="text-xs text-theme-text-muted italic">{t.waiting}</span>
                                             ) : (
-                                                target.history.map((val, i) => {
-                                                    if (val === -1) return <div key={i} className="w-1.5 h-6 bg-rose-200 dark:bg-rose-900 rounded-sm" title={t.timeout} />;
-                                                    const color = val < 20 ? 'bg-emerald-400' : val < 100 ? 'bg-yellow-400' : 'bg-orange-400';
-                                                    return <div key={i} className={`w-1.5 h-6 rounded-sm ${color}`} title={`${val}ms`} />;
-                                                })
+                                                <div className="w-[120px] h-8 relative flex items-center">
+                                                    <svg width="120" height="32" viewBox="0 0 120 32" className="overflow-visible">
+                                                        {(() => {
+                                                            const validData = target.history.filter(v => v !== -1);
+                                                            const maxVal = validData.length > 0 ? Math.max(20, ...validData, target.stats.avg * 1.5) : 100;
+                                                            const w = 120;
+                                                            const h = 32;
+                                                            const len = Math.max(20, target.history.length);
+                                                            const step = w / (len - 1);
+                                                            
+                                                            const points = target.history.map((val, i) => {
+                                                                const x = i * step;
+                                                                if (val === -1) return `${x},${h}`;
+                                                                const y = Math.max(4, h - (val / maxVal) * (h * 0.8));
+                                                                return `${x},${y}`;
+                                                            }).join(' ');
+                                                            
+                                                            return (
+                                                                <>
+                                                                    <polyline points={points} fill="none" stroke="currentColor" className="text-emerald-500/50" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                                    {target.history.map((val, i) => {
+                                                                        if (val === -1) return <circle key={i} cx={i * step} cy={h - 2} r="2.5" className="fill-rose-500" />;
+                                                                        if (i === target.history.length - 1) return <circle key={i} cx={i * step} cy={Math.max(4, h - (val / maxVal) * (h * 0.8))} r="3" className="fill-emerald-400 animate-pulse" />;
+                                                                        return null;
+                                                                    })}
+                                                                </>
+                                                            );
+                                                        })()}
+                                                    </svg>
+                                                </div>
                                             )}
                                         </div>
                                     </td>

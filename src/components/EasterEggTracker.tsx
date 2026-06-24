@@ -3,6 +3,67 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Sparkles } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
 
+const MatrixRain = () => {
+    useEffect(() => {
+        const canvas = document.getElementById('matrix-canvas') as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const chars = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%""\'#&_(),.;:?!\\|{}<>[]^~'.split('');
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        const drops: number[] = [];
+        for (let x = 0; x < columns; x++) drops[x] = Math.random() * -100; // Start at random heights
+        
+        const draw = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#10b981'; // Tailwind emerald-500
+            ctx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                
+                // Add a glowing effect to the leading character
+                if (Math.random() > 0.95) {
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#10b981';
+                } else {
+                    ctx.fillStyle = '#10b981';
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        };
+        
+        const interval = setInterval(draw, 33);
+        
+        const handleResize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+    
+    return <canvas id="matrix-canvas" className="absolute inset-0 z-0 opacity-60 pointer-events-none mix-blend-screen" />;
+};
+
 export const TOTAL_EGGS = 8;
 
 export type EasterEggId = 'konami' | 'admin' | 'localhost' | 'teapot' | 'matrix' | 'egg6' | 'egg7' | 'egg8';
@@ -69,7 +130,7 @@ export const EasterEggTracker: React.FC<EasterEggTrackerProps> = ({ theme, langu
         // Show specific overlay for easter egg
         if (id !== 'egg8') { // Rickroll already opens browser, skip overlay
             setActiveOverlay(id);
-            setTimeout(() => setActiveOverlay(null), id === 'matrix' ? 5000 : 4000);
+            setTimeout(() => setActiveOverlay(null), (id === 'matrix' || id === 'localhost') ? 8000 : 4000);
         }
 
         // Check if all eggs are found only on new discovery
@@ -219,11 +280,12 @@ export const EasterEggTracker: React.FC<EasterEggTrackerProps> = ({ theme, langu
             )}
 
             {activeOverlay === 'localhost' && ( // Diagnostico Existencial
-                <div className="fixed inset-0 z-[200] pointer-events-none flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900 via-purple-900/50 to-black animate-fade-in">
-                    <div className="text-center p-12 bg-black/50 backdrop-blur-md border border-purple-500/30 rounded-[3rem] shadow-[0_0_100px_rgba(168,85,247,0.5)]">
-                        <div className="text-5xl mb-4 animate-pulse">🌌</div>
-                        <h2 className="text-3xl text-purple-300 font-serif italic mb-4 font-bold">{t.eggExistentialTalk}</h2>
-                        <p className="text-xl text-purple-400/80 font-mono bg-purple-900/30 py-2 px-6 rounded-lg inline-block">{t.eggExistentialLatency}</p>
+                <div className="fixed inset-0 z-[200] pointer-events-none flex flex-col items-center justify-center bg-black/90 animate-fade-in overflow-hidden">
+                    <MatrixRain />
+                    <div className="text-center p-12 bg-black/80 backdrop-blur-md border border-emerald-500/30 rounded-[3rem] shadow-[0_0_100px_rgba(16,185,129,0.3)] z-10 animate-pulse duration-1000">
+                        <div className="text-5xl mb-4 text-emerald-400 font-mono tracking-widest font-black drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]">127.0.0.1</div>
+                        <h2 className="text-3xl text-emerald-300 font-mono italic mb-4 font-bold">"{t.eggExistentialTalk}"</h2>
+                        <p className="text-xl text-emerald-400 font-mono bg-emerald-900/30 py-2 px-6 rounded-lg inline-block border border-emerald-500/50">{t.eggExistentialLatency}</p>
                     </div>
                 </div>
             )}

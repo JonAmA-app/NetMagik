@@ -95,7 +95,15 @@ export const SubnetCalculator: React.FC<SubnetCalculatorProps> = ({ language }) 
                                 if (type === 'mask') colorClass = isNetBit ? 'text-theme-brand-primary font-bold' : 'text-theme-text-tertiary';
                                 if (type === 'ip' || type === 'net') colorClass = isNetBit ? 'text-theme-brand-primary font-bold' : 'text-theme-text-secondary';
 
-                                return <span key={j} className={colorClass}>{bit}</span>;
+                                return (
+                                    <span 
+                                        key={j} 
+                                        className={`${colorClass} transition-all duration-300 inline-block hover:scale-150 cursor-default animate-in zoom-in-50`}
+                                        style={{ animationDelay: `${globalIndex * 5}ms` }}
+                                    >
+                                        {bit}
+                                    </span>
+                                );
                             })}
                         </div>
                         {i < 3 && <span className="text-theme-text-muted">.</span>}

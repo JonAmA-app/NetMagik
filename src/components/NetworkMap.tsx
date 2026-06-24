@@ -1,8 +1,9 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as d3 from 'd3';
-import { Monitor, Search, Loader2, Maximize2, Minimize2, Save, Activity, Network, FolderTree, ListTree, Orbit } from 'lucide-react';
+import { Monitor, Search, Loader2, Maximize2, Minimize2, Save, Activity, Network, FolderTree, ListTree, Orbit, Power } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
+import { useToast } from '../context/ToastContext';
 import { ScannedDevice, NetworkInterface } from '../types';
 
 interface NetworkMapProps {
@@ -51,6 +52,7 @@ export const NetworkMap: React.FC<NetworkMapProps> = ({
     onScanPorts,
     language
 }) => {
+    const { success, error: toastError } = useToast();
     const t = TRANSLATIONS[language] || TRANSLATIONS['en'];
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -371,6 +373,27 @@ export const NetworkMap: React.FC<NetworkMapProps> = ({
                             </button>
                         )}
                     </div>
+                    
+                    {selectedNode.mac && selectedNode.mac !== 'Unknown' && selectedNode.mac !== '??:??:??:??:??:??' && (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await window.electronAPI.wakeOnLan({ mac: selectedNode.mac! });
+                                    if (res.success) {
+                                        success('Wake-on-LAN', `Magic Packet sent to ${selectedNode.mac}`);
+                                    } else {
+                                        toastError('Wake-on-LAN', res.error || 'Failed to send packet');
+                                    }
+                                } catch (e: any) {
+                                    toastError('Wake-on-LAN', e.message);
+                                }
+                            }}
+                            className="w-full mt-2 p-2 flex items-center justify-center gap-2 bg-theme-bg-tertiary text-emerald-500 border border-theme-border-primary rounded-lg hover:bg-theme-bg-hover transition-colors font-bold"
+                        >
+                            <Power size={14} /> Wake-on-LAN
+                        </button>
+                    )}
+
                     <button
                         onClick={() => onSaveToProfile && onSaveToProfile({
                             ip: selectedNode.ip!,

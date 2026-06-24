@@ -23,6 +23,7 @@ export const useInterfaces = () => {
                     let desc = "Ethernet Adapter";
                     const lowerName = iface.name.toLowerCase();
                     if (lowerName.includes('wi-fi') || lowerName.includes('wlan') || lowerName.includes('inalámbrica')) desc = "Wireless Adapter";
+                    else if (iface.isVirtual) desc = "Virtual Adapter";
                     
                     detected.push({
                         id: iface.name, 
@@ -31,7 +32,9 @@ export const useInterfaces = () => {
                         status: status,
                         macAddress: iface.mac || '??:??:??:??:??:??',
                         currentIp: iface.ip || '0.0.0.0',
-                        netmask: iface.netmask || '0.0.0.0'
+                        allIps: iface.allIps || [iface.ip || '0.0.0.0'],
+                        netmask: iface.netmask || '0.0.0.0',
+                        isVirtual: iface.isVirtual || false
                     });
                 });
 
@@ -55,8 +58,42 @@ export const useInterfaces = () => {
 
     useEffect(() => {
         loadInterfaces();
-        const interval = setInterval(() => loadInterfaces(true), 5000);
-        return () => clearInterval(interval);
+        
+        let intervalId: NodeJS.Timeout | null = null;
+        
+        const startPolling = () => {
+            if (!intervalId) {
+                intervalId = setInterval(() => {
+                    if (!document.hidden) {
+                        loadInterfaces(true);
+                    }
+                }, 5000);
+            }
+        };
+        
+        const stopPolling = () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
+        
+        startPolling();
+        
+        const handleVisibility = () => {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                loadInterfaces(true);
+                startPolling();
+            }
+        };
+        
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            stopPolling();
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, []);
 
     const toggleInterface = async (id: string, enable: boolean) => {

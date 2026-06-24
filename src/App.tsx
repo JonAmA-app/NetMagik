@@ -14,7 +14,7 @@ import {
 import {
   Profile, IpType, AppSettings,
   ClipboardSnippet, DeviceCredential, ScannedDevice,
-  PingTarget, ExternalApp
+  PingTarget, ExternalApp, IpRangePreset
 } from './types';
 
 import { InterfaceCard } from './components/InterfaceCard';
@@ -40,6 +40,7 @@ import { InputModal } from './components/InputModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { GlobalSearch } from './components/GlobalSearch';
 import { InventoryManager } from './components/InventoryManager';
+import { IpRangeButtons } from './components/IpRangeButtons';
 import { encryptData, decryptData } from './utils';
 import { useInterfaces } from './hooks/useInterfaces';
 import { useNetworkOps } from './hooks/useNetworkOps';
@@ -74,7 +75,8 @@ const App: React.FC = () => {
     encryptBackups: false,
     systemNotifications: true,
     notificationSound: false,
-    monitorSystemEvents: false
+    monitorSystemEvents: false,
+    launcherTrigger: 'click'
   });
 
   // Background System Hardware Monitor
@@ -181,6 +183,7 @@ const App: React.FC = () => {
   const [viewingInventoryProfileId, setViewingInventoryProfileId] = useState<string | null>(null);
   const [scannerReferenceProfileId, setScannerReferenceProfileId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [highlightedProfileId, setHighlightedProfileId] = useState<string | null>(null);
   const [deviceToDelete, setDeviceToDelete] = useState<{ profileId: string, deviceId: string } | null>(null);
   const { success, error, info } = useToast();
 
@@ -237,12 +240,14 @@ const App: React.FC = () => {
   const [quickIp, setQuickIp] = useState('');
   const [quickMask, setQuickMask] = useState('');
   const [quickGateway, setQuickGateway] = useState('');
+  const [ipRangePresets, setIpRangePresets] = useLocalStorage<IpRangePreset[]>('netmajik_ip_range_presets', []);
+  const [assigningPresetId, setAssigningPresetId] = useState<string | null>(null);
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS['en'];
   const selectedInterface = interfaces.find(i => i.id === selectedInterfaceId);
   const currentProfile = profiles.find(p => p.id === selectedInterface?.currentProfileId);
 
-  const { isApplying, applyProfile, autoConnect, showAdminPrompt, setShowAdminPrompt } = useNetworkOps(selectedInterface, t);
+  const { isApplying, applyProfile, autoConnect, findFreeIpAndAssign, showAdminPrompt, setShowAdminPrompt } = useNetworkOps(selectedInterface, t);
 
   // Effects
   useEffect(() => {
@@ -361,12 +366,25 @@ const App: React.FC = () => {
     setShowProfilePicker(true);
   };
 
+  const [conflictResolutionState, setConflictResolutionState] = useState<{
+    profileId: string;
+    conflicts: Array<{
+      type: 'ip' | 'mac';
+      dev: ScannedDevice;
+      index: number;
+      message: string;
+    }>;
+    newDevices: ScannedDevice[];
+    existingDevices: any[];
+  } | null>(null);
+
   const confirmSaveToProfile = (profileId: string) => {
     const selectedProfile = profiles.find(p => p.id === profileId);
     if (!selectedProfile) return;
 
     let existingDevices = [...(selectedProfile.devices || [])];
-    let addedCount = 0;
+    const conflicts: any[] = [];
+    const newDevices: any[] = [];
 
     for (const dev of devicesToSave) {
       // Check exact match
@@ -376,38 +394,107 @@ const App: React.FC = () => {
       // Check IP conflict
       const ipConflictIndex = existingDevices.findIndex(e => e.ip === dev.ip && e.mac !== dev.mac);
       if (ipConflictIndex !== -1) {
-        const oldDev = existingDevices[ipConflictIndex];
-        const msg = (t as any).ipConflict.replace('$ip', dev.ip).replace('$oldMac', oldDev.mac).replace('$newMac', dev.mac);
-        if (window.confirm(msg)) {
-          existingDevices[ipConflictIndex] = { ...oldDev, mac: dev.mac, vendor: dev.vendor || oldDev.vendor, lastSeen: new Date().toISOString() };
-          addedCount++;
-        }
+        conflicts.push({
+          type: 'ip',
+          dev,
+          index: ipConflictIndex,
+          message: (t as any).ipConflict.replace('$ip', dev.ip).replace('$oldMac', existingDevices[ipConflictIndex].mac).replace('$newMac', dev.mac)
+        });
         continue;
       }
 
       // Check MAC conflict
       const macConflictIndex = existingDevices.findIndex(e => e.mac === dev.mac && e.ip !== dev.ip);
       if (macConflictIndex !== -1) {
-        const oldDev = existingDevices[macConflictIndex];
-        const msg = (t as any).macConflict.replace('$mac', dev.mac).replace('$oldIp', oldDev.ip).replace('$newIp', dev.ip);
-        if (window.confirm(msg)) {
-          existingDevices[macConflictIndex] = { ...oldDev, ip: dev.ip, vendor: dev.vendor || oldDev.vendor, lastSeen: new Date().toISOString() };
-          addedCount++;
-        }
+        conflicts.push({
+          type: 'mac',
+          dev,
+          index: macConflictIndex,
+          message: (t as any).macConflict.replace('$mac', dev.mac).replace('$oldIp', existingDevices[macConflictIndex].ip).replace('$newIp', dev.ip)
+        });
         continue;
       }
 
-      // New Device
-      let deviceName = dev.vendor || 'Unknown Device';
-      if (devicesToSave.length === 1) {
-        const promptName = prompt(t.deviceNamePrompt, deviceName);
-        if (promptName === null) return;
-        deviceName = promptName;
+      newDevices.push(dev);
+    }
+
+    if (conflicts.length > 0) {
+      setConflictResolutionState({
+        profileId,
+        conflicts,
+        newDevices,
+        existingDevices
+      });
+    } else {
+      let addedCount = 0;
+      for (const dev of newDevices) {
+        let deviceName = dev.vendor || 'Unknown Device';
+        if (newDevices.length === 1 && devicesToSave.length === 1) {
+          const promptName = prompt(t.deviceNamePrompt, deviceName);
+          if (promptName === null) return;
+          deviceName = promptName;
+        }
+
+        existingDevices.push({
+          id: (Date.now() + Math.random()).toString(),
+          name: deviceName,
+          ip: dev.ip,
+          mac: dev.mac,
+          vendor: dev.vendor,
+          type: 'Unknown',
+          firstSeen: new Date().toISOString(),
+          lastSeen: new Date().toISOString(),
+          isNew: true
+        });
+        addedCount++;
       }
 
-      existingDevices.push({
+      setProfiles(prev => prev.map(p => {
+        if (p.id === profileId) {
+          return { ...p, devices: existingDevices };
+        }
+        return p;
+      }));
+
+      setShowProfilePicker(false);
+      setDevicesToSave([]);
+      success(t.devicesSavedTo.replace('$count', addedCount.toString()).replace('$profile', selectedProfile.name));
+    }
+  };
+
+  const handleResolveConflictsAcceptAll = () => {
+    if (!conflictResolutionState) return;
+    const { profileId, conflicts, newDevices, existingDevices } = conflictResolutionState;
+    const selectedProfile = profiles.find(p => p.id === profileId);
+    if (!selectedProfile) return;
+
+    let updatedDevices = [...existingDevices];
+    let addedCount = 0;
+
+    for (const conflict of conflicts) {
+      const oldDev = updatedDevices[conflict.index];
+      if (conflict.type === 'ip') {
+        updatedDevices[conflict.index] = {
+          ...oldDev,
+          mac: conflict.dev.mac,
+          vendor: conflict.dev.vendor || oldDev.vendor,
+          lastSeen: new Date().toISOString()
+        };
+      } else {
+        updatedDevices[conflict.index] = {
+          ...oldDev,
+          ip: conflict.dev.ip,
+          vendor: conflict.dev.vendor || oldDev.vendor,
+          lastSeen: new Date().toISOString()
+        };
+      }
+      addedCount++;
+    }
+
+    for (const dev of newDevices) {
+      updatedDevices.push({
         id: (Date.now() + Math.random()).toString(),
-        name: deviceName,
+        name: dev.vendor || 'Unknown Device',
         ip: dev.ip,
         mac: dev.mac,
         vendor: dev.vendor,
@@ -421,14 +508,56 @@ const App: React.FC = () => {
 
     setProfiles(prev => prev.map(p => {
       if (p.id === profileId) {
-        return { ...p, devices: existingDevices };
+        return { ...p, devices: updatedDevices };
       }
       return p;
     }));
 
+    setConflictResolutionState(null);
     setShowProfilePicker(false);
     setDevicesToSave([]);
     success(t.devicesSavedTo.replace('$count', addedCount.toString()).replace('$profile', selectedProfile.name));
+  };
+
+  const handleResolveConflictsSkipAll = () => {
+    if (!conflictResolutionState) return;
+    const { profileId, newDevices, existingDevices } = conflictResolutionState;
+    const selectedProfile = profiles.find(p => p.id === profileId);
+    if (!selectedProfile) return;
+
+    let updatedDevices = [...existingDevices];
+    let addedCount = 0;
+
+    for (const dev of newDevices) {
+      updatedDevices.push({
+        id: (Date.now() + Math.random()).toString(),
+        name: dev.vendor || 'Unknown Device',
+        ip: dev.ip,
+        mac: dev.mac,
+        vendor: dev.vendor,
+        type: 'Unknown',
+        firstSeen: new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+        isNew: true
+      });
+      addedCount++;
+    }
+
+    setProfiles(prev => prev.map(p => {
+      if (p.id === profileId) {
+        return { ...p, devices: updatedDevices };
+      }
+      return p;
+    }));
+
+    setConflictResolutionState(null);
+    setShowProfilePicker(false);
+    setDevicesToSave([]);
+    if (addedCount > 0) {
+      success(t.devicesSavedTo.replace('$count', addedCount.toString()).replace('$profile', selectedProfile.name));
+    } else {
+      info((t as any).noDevicesSaved || 'No devices were saved');
+    }
   };
 
   const handleQuickApply = () => {
@@ -439,8 +568,20 @@ const App: React.FC = () => {
     });
   };
 
-  const handleAutoConnect = async (targetIp: string) => {
-    const res = await autoConnect(targetIp);
+  const handleFindAndSetFreeIp = async (preset: IpRangePreset) => {
+    setAssigningPresetId(preset.id);
+    const res = await findFreeIpAndAssign(preset.startIp, preset.endIp, preset.gateway, preset.mask);
+    setAssigningPresetId(null);
+    if (res?.success) {
+      success(res.message!);
+      loadInterfaces(false);
+    } else {
+      error(res?.message || 'Failed to locate/assign free IP');
+    }
+  };
+
+  const handleAutoConnect = async (targetIp: string, openBrowser: boolean = true) => {
+    const res = await autoConnect(targetIp, openBrowser);
     if (res?.success) {
       success(res.message!);
       loadInterfaces(false);
@@ -588,6 +729,7 @@ const App: React.FC = () => {
           apps={externalApps}
           onUpdateApps={setExternalApps}
           language={settings.language}
+          launcherTrigger={settings.launcherTrigger || 'click'}
           onNotify={(msg: string, type: 'success' | 'error' | 'info') => {
             if (type === 'success') success(msg);
             else if (type === 'error') error(msg);
@@ -760,7 +902,13 @@ const App: React.FC = () => {
                       {!isCreating && (<button onClick={() => { setEditingProfile(null); setIsCreating(true); }} className="neo-button flex items-center gap-2 bg-theme-brand-primary hover:bg-theme-brand-hover text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-theme-brand-primary/20"><Plus size={18} /> {t.createProfile}</button>)}
                     </div>
                     {isCreating ? (
-                      <CreateProfileForm initialProfile={editingProfile} onSave={handleSaveProfile} onCancel={() => setIsCreating(false)} language={settings.language} />
+                      <CreateProfileForm
+                        initialProfile={editingProfile}
+                        onSave={handleSaveProfile}
+                        onCancel={() => setIsCreating(false)}
+                        language={settings.language}
+                        existingFolders={[...new Set(profiles.map(p => p.folder).filter(Boolean) as string[])]}
+                      />
                     ) : (
                       <>
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
@@ -782,10 +930,11 @@ const App: React.FC = () => {
                                 setScannerReferenceProfileId(id);
                               }}
                               onUpdateOrder={setProfiles}
+                              highlightId={highlightedProfileId}
                             />
                           </div>
 
-                          <div className="lg:col-span-1 sticky top-8">
+                          <div className="lg:col-span-1 space-y-6 sticky top-8">
                             <div className="glass-card border-none p-6 rounded-2xl space-y-5 shadow-xl shadow-theme-brand-primary/5">
                               <div className="flex items-center gap-2 pb-2 border-b border-theme-border-primary/50">
                                 <Zap size={18} className="text-theme-brand-primary" />
@@ -839,6 +988,20 @@ const App: React.FC = () => {
                             </div>
                           </div>
                         </div>
+
+                        {/* IP Range Buttons - always visible below profiles grid */}
+                        <div className="mt-6 rounded-2xl overflow-hidden border border-theme-border-primary shadow-sm">
+                          <IpRangeButtons
+                            presets={ipRangePresets}
+                            onUpdatePresets={setIpRangePresets}
+                            onFindAndAssign={handleFindAndSetFreeIp}
+                            isAssigning={!!assigningPresetId}
+                            assigningId={assigningPresetId}
+                            hasInterface={!!selectedInterface}
+                            language={settings.language}
+                            t={t}
+                          />
+                        </div>
                       </>
                     )}
                   </div>
@@ -882,7 +1045,6 @@ const App: React.FC = () => {
                     }}
                     onSaveToProfile={(dev) => handleSaveDeviceToProfile([dev])}
                     onSaveAllToProfile={() => handleSaveDeviceToProfile(scannedDevices)}
-                    currentProfile={currentProfile}
                     profiles={profiles}
                     referenceProfileId={scannerReferenceProfileId}
                     setReferenceProfileId={setScannerReferenceProfileId}
@@ -974,10 +1136,12 @@ const App: React.FC = () => {
               if (!selectedInterfaceId && interfaces.length > 0) {
                 setSelectedInterfaceId(interfaces[0].id);
               }
-              setEditingProfile(profile);
               setIsCreating(false);
               setView('profiles');
               setScannerReferenceProfileId(id);
+              // Highlight the profile card briefly
+              setHighlightedProfileId(id);
+              setTimeout(() => setHighlightedProfileId(null), 2000);
             }
           }}
           onSelectSnippet={(_id) => setView('clipboard')}
@@ -1047,6 +1211,68 @@ const App: React.FC = () => {
                 </div>
                 <div className="p-6 bg-theme-bg-tertiary">
                   <button onClick={() => setShowProfilePicker(false)} className="w-full py-3 rounded-xl font-bold text-theme-text-muted hover:bg-theme-bg-hover transition-colors">{t.cancel}</button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        {
+          conflictResolutionState && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-theme-bg-primary/70 backdrop-blur-md animate-fade-in">
+              <div className="bg-theme-bg-secondary w-full max-w-lg rounded-3xl shadow-2xl border border-theme-border-primary overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="p-6 border-b border-theme-border-secondary flex justify-between items-center bg-theme-bg-tertiary">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-500">
+                      <AlertTriangle size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-theme-text-primary">
+                        {t.conflictsDetected || 'Conflicts Detected'}
+                      </h3>
+                      <p className="text-theme-text-muted text-xs">
+                        {conflictResolutionState.conflicts.length} {conflictResolutionState.conflicts.length === 1 ? 'conflict' : 'conflicts'} {t.updatesAvailable || 'updates available'}
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={() => setConflictResolutionState(null)} className="p-2 hover:bg-theme-bg-hover rounded-full transition-colors text-theme-text-muted">
+                    <Plus size={20} className="rotate-45" />
+                  </button>
+                </div>
+                
+                <div className="p-6 max-h-[300px] overflow-y-auto custom-scrollbar space-y-4">
+                  <p className="text-xs text-theme-text-secondary leading-relaxed">
+                    {t.conflictsDescription || 'The following conflict(s) were found in the selected profile:'}
+                  </p>
+                  <div className="space-y-2">
+                    {conflictResolutionState.conflicts.map((conflict, idx) => (
+                      <div key={idx} className="p-4 rounded-2xl bg-theme-bg-tertiary border border-theme-border-primary text-xs space-y-1">
+                        <p className="font-bold text-theme-text-primary capitalize">{conflict.type === 'ip' ? 'IP Conflict' : 'MAC Conflict'}</p>
+                        <p className="text-theme-text-muted leading-relaxed font-mono">{conflict.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-6 bg-theme-bg-tertiary border-t border-theme-border-secondary flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={handleResolveConflictsAcceptAll}
+                    className="flex-1 py-3 bg-theme-brand-primary text-white rounded-xl font-bold hover:bg-theme-brand-hover shadow-lg shadow-theme-brand-primary/20 transition-all text-sm"
+                  >
+                    {t.acceptAllConflicts || 'Accept All Changes'}
+                  </button>
+                  <button
+                    onClick={handleResolveConflictsSkipAll}
+                    className="flex-1 py-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl font-bold hover:bg-amber-500/20 transition-all text-sm"
+                  >
+                    {t.skipConflicts || 'Ignore Conflicts'}
+                  </button>
+                  <button
+                    onClick={() => setConflictResolutionState(null)}
+                    className="flex-1 py-3 bg-theme-bg-secondary text-theme-text-muted rounded-xl font-bold hover:bg-theme-bg-hover border border-theme-border-primary transition-all text-sm"
+                  >
+                    {t.cancel}
+                  </button>
                 </div>
               </div>
             </div>

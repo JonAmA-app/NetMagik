@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, X, Play, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Terminal, X, Play, CheckCircle2, Activity } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 
@@ -118,7 +118,7 @@ export const PingTool: React.FC<PingToolProps> = ({ isOpen, onClose, targetIp, l
           <div className="flex items-center gap-2 text-xs text-slate-500">
             {isRunning ? (
               <>
-                <RefreshCw size={12} className="animate-spin" />
+                <Activity size={14} className="text-emerald-500 animate-ekg" />
                 {t.loading.replace('...', '')}
               </>
             ) : (

@@ -440,6 +440,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   )}
                 </div>
+
+                <div className="p-3 rounded-xl bg-theme-bg-primary border border-theme-border-secondary space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-theme-brand-primary/10 text-theme-brand-primary">
+                        <Maximize size={16} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-theme-text-primary uppercase tracking-tight">{(t as any).launcherTriggerLabel || 'Drawer Trigger'}</p>
+                        <p className="text-[9px] text-theme-text-muted">{t.manageApps || 'Manage Shortcuts'}</p>
+                      </div>
+                    </div>
+                    <select
+                      value={settings.launcherTrigger || 'click'}
+                      onChange={(e) => onUpdateSettings({ ...settings, launcherTrigger: e.target.value as 'click' | 'hover' })}
+                      className="bg-theme-bg-secondary border border-theme-border-secondary text-[10px] font-bold text-theme-text-primary rounded-lg px-2 py-1 outline-none"
+                    >
+                      <option value="click">{(t as any).launcherTriggerClick || 'Click Tab'}</option>
+                      <option value="hover">{(t as any).launcherTriggerHover || 'Hover Edge'}</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               {/* Section 4: Maintenance & Data */}

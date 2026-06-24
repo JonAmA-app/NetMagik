@@ -23,6 +23,7 @@ interface ExternalAppLauncherProps {
     apps: ExternalApp[];
     onUpdateApps: (apps: ExternalApp[]) => void;
     language: Language;
+    launcherTrigger?: 'click' | 'hover';
     onNotify: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -39,12 +40,14 @@ export const ExternalAppLauncher: React.FC<ExternalAppLauncherProps> = ({
     apps,
     onUpdateApps,
     language,
+    launcherTrigger = 'click',
     onNotify
 }) => {
     const t = TRANSLATIONS[language] || TRANSLATIONS['en'];
     const [isOpen, setIsOpen] = useState(false);
     const [isConfigMode, setIsConfigMode] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [launchingAppId, setLaunchingAppId] = useState<string | null>(null);
 
     // Form State
     const [formData, setFormData] = useState<Omit<ExternalApp, 'id'>>({
@@ -87,15 +90,18 @@ export const ExternalAppLauncher: React.FC<ExternalAppLauncherProps> = ({
         setDraggedItemIndex(null);
     };
 
-    const launchApp = async (appPath: string) => {
+    const launchApp = async (app: ExternalApp) => {
         if (!window.electronAPI) return;
+        setLaunchingAppId(app.id);
         try {
-            const result = await window.electronAPI.launchExternalApp(appPath);
+            const result = await window.electronAPI.launchExternalApp(app.path);
             if (!result.success) {
                 onNotify(`${t.launchFailed}: ${result.error}`, 'error');
             }
         } catch (e) {
             onNotify(t.launchFailed, 'error');
+        } finally {
+            setTimeout(() => setLaunchingAppId(null), 1000);
         }
     };
 
@@ -132,9 +138,27 @@ export const ExternalAppLauncher: React.FC<ExternalAppLauncherProps> = ({
 
     return (
         <>
+            {/* Zona activa invisible a la derecha para disparar el menú por hover */}
+            {launcherTrigger === 'hover' && !isOpen && (
+                <div
+                    onMouseEnter={() => setIsOpen(true)}
+                    className="fixed right-0 top-0 bottom-0 w-6 z-[55] bg-transparent"
+                />
+            )}
+
             {/* Drawer / Barra lateral derecha */}
             <div
                 ref={containerRef}
+                onMouseEnter={() => {
+                    if (launcherTrigger === 'hover') {
+                        setIsOpen(true);
+                    }
+                }}
+                onMouseLeave={() => {
+                    if (launcherTrigger === 'hover') {
+                        setIsOpen(false);
+                    }
+                }}
                 className={`fixed right-0 top-1/2 -translate-y-1/2 z-[60] transition-all duration-300 flex items-center ${isOpen ? 'translate-x-0' : 'translate-x-[calc(100%-12px)]'
                     }`}
             >
@@ -162,11 +186,11 @@ export const ExternalAppLauncher: React.FC<ExternalAppLauncherProps> = ({
                             onDrop={() => handleDrop(index)}
                         >
                             <button
-                                onClick={() => !isConfigMode && launchApp(app.path)}
-                                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isConfigMode
+                                onClick={() => !isConfigMode && launchApp(app)}
+                                className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isConfigMode
                                     ? 'bg-theme-bg-tertiary text-theme-text-muted cursor-default'
                                     : 'bg-theme-bg-secondary border border-theme-border-primary text-theme-text-primary hover:bg-theme-brand-primary hover:text-white hover:shadow-lg hover:shadow-theme-brand-primary/20 hover:-translate-y-1'
-                                    }`}
+                                    } ${launchingAppId === app.id ? 'animate-pulse bg-theme-brand-primary/20 border-theme-brand-primary' : ''}`}
                                 title={app.name}
                             >
                                 {app.iconData ? (
@@ -299,6 +323,19 @@ export const ExternalAppLauncher: React.FC<ExternalAppLauncherProps> = ({
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Floating window for "Opening..." */}
+            {launchingAppId && (
+                <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[200] bg-theme-bg-primary/95 backdrop-blur-md border border-theme-brand-primary/30 shadow-2xl shadow-theme-brand-primary/20 px-6 py-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top-8 fade-in duration-300">
+                    <div className="w-10 h-10 rounded-full bg-theme-brand-primary/10 flex items-center justify-center shrink-0">
+                        <Activity size={20} className="text-theme-brand-primary animate-pulse" />
+                    </div>
+                    <div className="flex flex-col min-w-[120px]">
+                        <span className="text-sm font-bold text-theme-text-primary">{(t as any).opening || 'Abriendo...'}</span>
+                        <span className="text-xs font-medium text-theme-brand-primary">{apps.find(a => a.id === launchingAppId)?.name}</span>
                     </div>
                 </div>
             )}

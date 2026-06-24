@@ -15,6 +15,7 @@ export const TrafficMonitor: React.FC<TrafficMonitorProps> = ({ isActive, t }) =
     if (!isActive) return;
 
     const interval = setInterval(() => {
+      if (document.hidden) return;
       setDataPoints(prev => {
         const newData = [...prev.slice(1)];
         // Generate random traffic spike
@@ -64,39 +65,45 @@ export const TrafficMonitor: React.FC<TrafficMonitorProps> = ({ isActive, t }) =
   const strokePath = normalizeGraph(dataPoints);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+    <div className="bg-theme-bg-secondary border border-theme-border-primary rounded-xl p-5 shadow-sm group">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-slate-700 dark:text-slate-200">{t.traffic}</h3>
+        <h3 className="font-semibold text-theme-text-primary">{t.traffic}</h3>
         <div className="flex gap-4">
-          <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded text-xs font-mono font-medium">
+          <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-xs font-mono font-medium border border-emerald-500/20">
             <ArrowDown size={14} />
             {currentSpeed.down} Mbps
           </div>
-          <div className="flex items-center gap-1.5 text-blue-500 bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded text-xs font-mono font-medium">
+          <div className="flex items-center gap-1.5 text-sky-500 bg-sky-500/10 px-2 py-1 rounded text-xs font-mono font-medium border border-sky-500/20">
             <ArrowUp size={14} />
             {currentSpeed.up} Mbps
           </div>
         </div>
       </div>
 
-      <div className="relative h-48 w-full overflow-hidden rounded-lg bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800">
+      <div className="relative h-48 w-full overflow-hidden rounded-lg bg-theme-bg-tertiary border border-theme-border-secondary shadow-inner">
         <svg 
           viewBox="0 0 100 100" 
           preserveAspectRatio="none" 
           className="absolute inset-0 w-full h-full transition-all duration-700 ease-linear"
         >
-          {/* Gradient Definition */}
           <defs>
             <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--brand-primary, #3b82f6)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="var(--brand-primary, #3b82f6)" stopOpacity="0" />
             </linearGradient>
+            
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-theme-border-primary/50" />
+            </pattern>
           </defs>
           
-          {/* Grid lines */}
-          <line x1="0" y1="25" x2="100" y2="25" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="0.5" strokeDasharray="2" />
-          <line x1="0" y1="50" x2="100" y2="50" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="0.5" strokeDasharray="2" />
-          <line x1="0" y1="75" x2="100" y2="75" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="0.5" strokeDasharray="2" />
+          {/* Holographic Grid Background */}
+          <rect width="100%" height="100%" fill="url(#grid)" />
+
+          {/* Guide lines */}
+          <line x1="0" y1="25" x2="100" y2="25" stroke="currentColor" className="text-theme-border-primary" strokeWidth="0.5" strokeDasharray="2" />
+          <line x1="0" y1="50" x2="100" y2="50" stroke="currentColor" className="text-theme-border-primary" strokeWidth="0.5" strokeDasharray="2" />
+          <line x1="0" y1="75" x2="100" y2="75" stroke="currentColor" className="text-theme-border-primary" strokeWidth="0.5" strokeDasharray="2" />
 
           {/* Graph Area */}
           <path d={areaPath} fill="url(#trafficGradient)" />
@@ -105,23 +112,29 @@ export const TrafficMonitor: React.FC<TrafficMonitorProps> = ({ isActive, t }) =
           <path 
             d={strokePath} 
             fill="none" 
-            stroke="#3b82f6" 
+            stroke="var(--brand-primary, #3b82f6)" 
             strokeWidth="1.5" 
             strokeLinecap="round" 
             strokeLinejoin="round" 
             vectorEffect="non-scaling-stroke"
+            className="filter drop-shadow-[0_0_8px_var(--brand-primary)]"
           />
         </svg>
 
+        {/* Scanning beam effect across the graph */}
+        {isActive && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-theme-brand-primary/20 to-transparent w-full h-full animate-scan-beam mix-blend-screen pointer-events-none opacity-50" style={{ left: '-100%' }} />
+        )}
+
         {/* Status Overlay if inactive */}
         {!isActive && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
-             <span className="text-slate-400 text-sm">{t.monitoringPaused || "Monitoring Paused"}</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-theme-bg-primary/80 backdrop-blur-sm">
+             <span className="text-theme-text-muted text-sm font-bold uppercase tracking-widest border border-theme-border-primary px-4 py-2 rounded-xl bg-theme-bg-secondary">{t.monitoringPaused || "Monitoring Paused"}</span>
           </div>
         )}
       </div>
       
-      <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-mono">
+      <div className="flex justify-between mt-2 text-[10px] text-theme-text-muted font-mono font-bold uppercase tracking-widest px-1">
         <span>{t.ago?.replace('$time', '60s') || "60s ago"}</span>
         <span>{t.ago?.replace('$time', '30s') || "30s ago"}</span>
         <span>{t.now || "Now"}</span>

@@ -151,7 +151,11 @@ export const Traceroute: React.FC<TracerouteProps> = ({ language }) => {
                 <div className="space-y-0 relative">
                     {/* Connecting Line */}
                     {hops.length > 1 && (
-                        <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-theme-border-primary -z-0" />
+                        <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-theme-border-primary -z-0">
+                            {isTracing && (
+                                <div className="absolute left-1/2 w-1 h-6 bg-emerald-500 rounded-full animate-packet shadow-[0_0_8px_rgba(16,185,129,0.8)] z-10" />
+                            )}
+                        </div>
                     )}
 
                     {hops.map((hop, index) => (

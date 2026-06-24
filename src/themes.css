@@ -1,4 +1,4 @@
-/* NetMajik Theme System - v1.0.0 */
+/* NetMajik Theme System - v1.0.1 */
 
 :root {
     --transition-speed: 0.3s;
@@ -46,19 +46,19 @@ body {
 
 /* ===== LIGHT THEME (Clean Glass) ===== */
 [data-theme="light"] {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --bg-tertiary: #f1f5f9;
-    --bg-card: rgba(255, 255, 255, 0.8);
-    --bg-hover: #e2e8f0;
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --bg-tertiary: #e2e8f0;
+    --bg-card: rgba(255, 255, 255, 0.55);
+    --bg-hover: rgba(255, 255, 255, 0.8);
 
-    --text-primary: #0f172a;
-    --text-secondary: #334155;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
     --text-tertiary: #64748b;
     --text-muted: #94a3b8;
 
-    --border-primary: #e2e8f0;
-    --border-secondary: #cbd5e1;
+    --border-primary: rgba(255, 255, 255, 0.6);
+    --border-secondary: rgba(255, 255, 255, 0.3);
 
     --brand-primary: #6366f1;
     --brand-hover: #4f46e5;
@@ -67,9 +67,9 @@ body {
     --accent-success: #059669;
     --accent-error: #dc2626;
 
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
-    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    --glass-blur: blur(16px);
+    --shadow-md: 0 8px 30px rgba(99, 102, 241, 0.08);
+    --shadow-lg: 0 15px 40px rgba(99, 102, 241, 0.12);
+    --glass-blur: blur(20px);
 }
 
 /* ===== MATRIX THEME (Binary Green) ===== */
@@ -102,19 +102,19 @@ body {
 
 /* ===== ANIME THEME (Kawaii Sakura) ===== */
 [data-theme="sakura"] {
-    --bg-primary: #fff5f7;
-    --bg-secondary: #ffe4e9;
-    --bg-tertiary: #ffffff;
-    --bg-card: rgba(255, 255, 255, 0.9);
-    --bg-hover: #ffd1dc;
+    --bg-primary: #ffeef2;
+    --bg-secondary: #ffdce4;
+    --bg-tertiary: #ffcadd;
+    --bg-card: rgba(255, 255, 255, 0.55);
+    --bg-hover: rgba(255, 255, 255, 0.8);
 
-    --text-primary: #4a154b;
-    --text-secondary: #6b2d6a;
-    --text-tertiary: #9b5b9a;
+    --text-primary: #5c1a5d;
+    --text-secondary: #7d357c;
+    --text-tertiary: #a866a7;
     --text-muted: #c48bc3;
 
-    --border-primary: #ffc0cb;
-    --border-secondary: #ffa3b1;
+    --border-primary: rgba(255, 255, 255, 0.6);
+    --border-secondary: rgba(255, 255, 255, 0.4);
 
     --brand-primary: #ff4d94;
     --brand-hover: #ff1a75;
@@ -126,9 +126,9 @@ body {
     --font-main: 'Outfit', 'Inter', sans-serif;
     --border-radius-lg: 1.5rem;
     --border-radius-xl: 2rem;
-    --shadow-md: 0 8px 30px rgba(255, 77, 148, 0.1);
-    --shadow-lg: 0 15px 45px rgba(255, 77, 148, 0.2);
-    --glass-blur: blur(8px);
+    --shadow-md: 0 8px 30px rgba(255, 77, 148, 0.12);
+    --shadow-lg: 0 20px 50px rgba(255, 77, 148, 0.18);
+    --glass-blur: blur(16px);
 }
 
 /* --- Theme Component Refinements --- */

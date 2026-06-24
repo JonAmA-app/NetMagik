@@ -52,18 +52,50 @@ export const InterfaceCard: React.FC<InterfaceCardProps> = ({ iface, isSelected,
                             }`}>
                             {iface.name}
                         </span>
+                        {iface.isVirtual && (
+                            <span className="text-[8px] font-bold bg-violet-500/15 text-violet-400 px-1.5 py-0.5 rounded uppercase tracking-widest border border-violet-500/20 shrink-0 ml-1">
+                                VPN
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-1.5 min-w-0">
-                        <span className={`text-[11px] truncate font-mono tracking-tight transition-colors ${isSelected ? 'text-theme-text-secondary' : 'text-theme-text-muted'}`}>
-                            {isDisabled ? 'Offline' : iface.currentIp}
-                        </span>
+                        <div className="relative flex items-center">
+                            {!isDisabled && (
+                                <div className="absolute -left-3 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                            )}
+                            <span className={`text-[11px] truncate font-mono tracking-tight transition-colors ${isSelected ? 'text-theme-text-secondary' : 'text-theme-text-muted'}`}>
+                                {isDisabled ? 'Offline' : iface.currentIp}
+                            </span>
+                        </div>
+                        {!isDisabled && iface.allIps && iface.allIps.length > 1 && (
+                            <span className="text-[8px] font-bold bg-sky-500/10 text-sky-400 px-1 py-0.5 rounded shrink-0">
+                                +{iface.allIps.length - 1} IP
+                            </span>
+                        )}
                     </div>
+                    {/* Render extra IPs if present */}
+                    {!isDisabled && iface.allIps && iface.allIps.length > 1 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5 max-w-full">
+                            {iface.allIps.filter(ip => ip !== iface.currentIp).map((ip, idx) => (
+                                <span 
+                                    key={idx} 
+                                    className={`text-[9px] font-mono px-1.5 py-0.5 rounded border transition-colors shrink-0 ${
+                                        isSelected 
+                                            ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' 
+                                            : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                                    }`}
+                                >
+                                    {ip}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Status indicator for selected */}
                 {isSelected && (
                     <div className="absolute top-0 right-0 p-1">
-                        <Activity size={10} className="text-brand-500 opacity-50" />
+                        <Activity size={10} className="text-theme-brand-primary opacity-50 animate-pulse" />
                     </div>
                 )}
             </button>

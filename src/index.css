@@ -26,6 +26,23 @@
     background-attachment: fixed;
     animation: matrix-scroll 20s linear infinite;
   }
+
+  /* --- Theme Background Enhancements --- */
+  [data-theme='light'] body {
+    background-image:
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.05) 0px, transparent 50%),
+      url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%23e2e8f0' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+  }
+
+  [data-theme='sakura'] body {
+    background-image:
+      radial-gradient(at 100% 0%, rgba(255, 182, 193, 0.3) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(255, 202, 221, 0.3) 0px, transparent 50%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffb6c1' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-attachment: fixed;
+  }
 }
 
 @keyframes matrix-scroll {
@@ -122,3 +139,116 @@
 .animate-shake {
   animation: shake 0.2s cubic-bezier(.36, .07, .19, .97) both;
 }
+
+@keyframes scan-beam {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.animate-scan-beam {
+  animation: scan-beam 2s linear infinite;
+}
+
+@keyframes ink-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ink-ripple {
+  animation: ink-ripple 0.6s ease-out forwards;
+}
+
+@keyframes ekg-draw {
+  0% {
+    stroke-dashoffset: 80;
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  40% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+
+  60% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: -80;
+    opacity: 0;
+  }
+}
+
+.animate-ekg path {
+  stroke-dasharray: 80;
+  stroke-dashoffset: 80;
+  animation: ekg-draw 1.5s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+}
+
+@keyframes packet-journey {
+  0% {
+    top: 0%;
+    opacity: 0;
+    transform: translateX(-50%) scale(1);
+  }
+
+  5% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.5);
+  }
+
+  10% {
+    transform: translateX(-50%) scale(1);
+  }
+
+  90% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+
+  95% {
+    transform: translateX(-50%) scale(1.5);
+  }
+
+  100% {
+    top: 100%;
+    opacity: 0;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.animate-packet {
+  animation: packet-journey 2s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+}
+
+/* ── Search result highlight flash ──────────────────────────────────────── */
+@keyframes pulse-highlight {
+  0%   { box-shadow: 0 0 0 0 var(--brand-primary, #6366f1); background-color: color-mix(in srgb, var(--brand-primary, #6366f1) 12%, transparent); }
+  40%  { box-shadow: 0 0 0 6px transparent; background-color: color-mix(in srgb, var(--brand-primary, #6366f1) 8%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; background-color: transparent; }
+}
+
+.animate-pulse-highlight {
+  animation: pulse-highlight 1.6s ease-out forwards;
+}

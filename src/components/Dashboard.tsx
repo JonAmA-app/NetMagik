@@ -22,9 +22,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedInterface, current
                 setSystemStats(stats);
             }
         };
+
         fetchStats();
-        const interval = setInterval(fetchStats, 10000);
-        return () => clearInterval(interval);
+
+        let intervalId: NodeJS.Timeout | null = null;
+
+        const startPolling = () => {
+            if (!intervalId) {
+                intervalId = setInterval(() => {
+                    if (!document.hidden) {
+                        fetchStats();
+                    }
+                }, 10000);
+            }
+        };
+
+        const stopPolling = () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
+
+        startPolling();
+
+        const handleVisibility = () => {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                fetchStats();
+                startPolling();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            stopPolling();
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, []);
 
     const isConnected = selectedInterface?.status === 'Connected';

@@ -6,6 +6,8 @@ import fs from 'fs';
 import { exec, spawn } from 'child_process';
 import net from 'net';
 import os from 'os';
+import dgram from 'dgram';
+import https from 'https';
 import uiohookPkg from 'uiohook-napi';
 const { uiohook } = uiohookPkg;
 
@@ -296,6 +298,10 @@ ipcMain.on('show-custom-toast', (event, payload) => {
                 logToFile(`Sound Command Executed Successfully`);
             }
         });
+    }
+
+    if (isVisible && !isMinimized) {
+        return;
     }
 
     if (!notificationWindow) {
@@ -779,6 +785,15 @@ ipcMain.handle('get-windows-interfaces', async () => {
             return;
         }
         const osInterfaces = os.networkInterfaces();
+
+        // Known virtual adapter name patterns
+        const virtualPatterns = [
+            'vmware', 'virtualbox', 'vbox', 'hyper-v', 'docker',
+            'vethernet', 'vpn', 'tap-', 'tun', 'wireguard',
+            'nordlynx', 'wintun', 'hamachi', 'zerotier',
+            'tailscale', 'npcap', 'bluetooth'
+        ];
+
         exec('netsh interface show interface', (err, stdout) => {
             if (err) {
                 resolve([]);
@@ -801,16 +816,24 @@ ipcMain.handle('get-windows-interfaces', async () => {
                     const connectionState = parts[1];
                     const name = parts[parts.length - 1];
 
-                    const osInfoList = osInterfaces[name];
-                    const ipv4 = osInfoList?.find((info) => info.family === 'IPv4' && !info.internal);
+                    const osInfoList = osInterfaces[name] || [];
+                    const ipv4s = osInfoList.filter((info) => info.family === 'IPv4' && !info.internal);
+                    const mainIpv4 = ipv4s[0];
+
+                    // Detect virtual adapters
+                    const nameLower = name.toLowerCase();
+                    const isVirtual = virtualPatterns.some(p => nameLower.includes(p));
 
                     interfaces.push({
                         name: name,
                         adminState: adminState,
                         connectionState: connectionState,
-                        ip: ipv4 ? ipv4.address : '0.0.0.0',
-                        mac: ipv4 ? ipv4.mac.toUpperCase() : '??:??:??:??:??:??',
-                        netmask: ipv4 ? ipv4.netmask : '0.0.0.0'
+                        ip: mainIpv4 ? mainIpv4.address : '0.0.0.0',
+                        allIps: ipv4s.map(i => i.address),
+                        allNetmasks: ipv4s.map(i => i.netmask),
+                        mac: mainIpv4 ? mainIpv4.mac.toUpperCase() : '??:??:??:??:??:??',
+                        netmask: mainIpv4 ? mainIpv4.netmask : '0.0.0.0',
+                        isVirtual: isVirtual
                     });
                 }
             }
@@ -829,7 +852,7 @@ ipcMain.handle('change-ip-config', async (event, { ifaceName, profile }) => {
             commands.push(`netsh interface ip set address "${ifaceName}" dhcp`);
             commands.push(`netsh interface ip set dns "${ifaceName}" dhcp`);
         } else {
-            const { ipAddress, subnetMask, gateway, dnsPrimary, dnsSecondary } = profile.config;
+            const { ipAddress, subnetMask, gateway, dnsPrimary, dnsSecondary, additionalIps } = profile.config;
             if (!isValidIp(ipAddress)) return reject(new Error('Invalid IP Address'));
             if (!isValidIp(subnetMask)) return reject(new Error('Invalid Subnet Mask'));
             if (gateway && !isValidIp(gateway)) return reject(new Error('Invalid Gateway'));
@@ -838,6 +861,17 @@ ipcMain.handle('change-ip-config', async (event, { ifaceName, profile }) => {
 
             const gatewayCmd = gateway ? gateway : 'none';
             commands.push(`netsh interface ip set address "${ifaceName}" static ${ipAddress} ${subnetMask} ${gatewayCmd}`);
+
+            if (additionalIps && Array.isArray(additionalIps)) {
+                for (const addIp of additionalIps) {
+                    if (addIp.ipAddress && addIp.subnetMask) {
+                        if (!isValidIp(addIp.ipAddress)) return reject(new Error(`Invalid Additional IP Address: ${addIp.ipAddress}`));
+                        if (!isValidIp(addIp.subnetMask)) return reject(new Error(`Invalid Additional Subnet Mask: ${addIp.subnetMask}`));
+                        commands.push(`netsh interface ip add address "${ifaceName}" ${addIp.ipAddress} ${addIp.subnetMask}`);
+                    }
+                }
+            }
+
             if (dnsPrimary) commands.push(`netsh interface ip set dns "${ifaceName}" static ${dnsPrimary}`);
             if (dnsSecondary) commands.push(`netsh interface ip add dns "${ifaceName}" ${dnsSecondary} index=2`);
         }
@@ -924,7 +958,32 @@ ipcMain.handle('toggle-firewall', async (event, { action }) => {
 
 // --- SYSTEM HEALTH ---
 
-ipcMain.handle('get-system-stats', async () => {
+let cachedStaticStats = null;
+let cachedDynamicStats = null;
+let lastDynamicFetchTime = 0;
+const DYNAMIC_CACHE_TTL = 30000; // 30 seconds
+
+ipcMain.handle('get-system-stats', async (event, options = {}) => {
+    const forceRefresh = options && options.forceRefresh;
+    const now = Date.now();
+
+    // Check if we can return cached data
+    if (!forceRefresh && cachedStaticStats && cachedDynamicStats && (now - lastDynamicFetchTime < DYNAMIC_CACHE_TTL)) {
+        // Return cached stats, but update free memory dynamically (since os.freemem is instantaneous)
+        return {
+            ...cachedStaticStats,
+            mem: {
+                ...cachedStaticStats.mem,
+                free: os.freemem()
+            },
+            storage: cachedDynamicStats.storage,
+            os: {
+                ...cachedStaticStats.os,
+                firewallStatus: cachedDynamicStats.os.firewallStatus
+            }
+        };
+    }
+
     const stats = {
         cpu: { model: 'Unknown', cores: 0 },
         mem: { total: os.totalmem(), free: os.freemem(), type: 'DDR', speed: 0, slotsTotal: 0, slotsUsed: 0 },
@@ -944,6 +1003,12 @@ ipcMain.handle('get-system-stats', async () => {
     if (process.platform === 'win32') {
         try {
             const getHostnames = () => new Promise(resolve => {
+                if (cachedStaticStats && cachedStaticStats.os.computerName) {
+                    stats.os.hostname = cachedStaticStats.os.hostname;
+                    stats.os.computerName = cachedStaticStats.os.computerName;
+                    resolve();
+                    return;
+                }
                 exec('wmic computersystem get DNSHostName, Name', (err, stdout) => {
                     if (!err && stdout) {
                         const lines = stdout.trim().split('\n').map(l => l.trim()).filter(l => l && !l.includes('DNSHostName'));
@@ -968,6 +1033,13 @@ ipcMain.handle('get-system-stats', async () => {
             else stats.os.distro = `Windows (Build ${build})`;
 
             const getRamDetails = () => new Promise(resolve => {
+                if (cachedStaticStats && cachedStaticStats.mem.speed > 0) {
+                    stats.mem.slotsUsed = cachedStaticStats.mem.slotsUsed;
+                    stats.mem.speed = cachedStaticStats.mem.speed;
+                    stats.mem.type = cachedStaticStats.mem.type;
+                    resolve();
+                    return;
+                }
                 exec('wmic memorychip get Speed, Capacity, Manufacturer, MemoryType, SMBIOSMemoryType', (err, stdout) => {
                     if (!err && stdout) {
                         const lines = stdout.trim().split('\n').slice(1).filter(l => l.trim());
@@ -985,6 +1057,11 @@ ipcMain.handle('get-system-stats', async () => {
             });
 
             const getRamSlots = () => new Promise(resolve => {
+                if (cachedStaticStats && cachedStaticStats.mem.slotsTotal > 0) {
+                    stats.mem.slotsTotal = cachedStaticStats.mem.slotsTotal;
+                    resolve();
+                    return;
+                }
                 exec('wmic memphysical get MemoryDevices', (err, stdout) => {
                     if (!err && stdout) {
                         const match = stdout.match(/\d+/);
@@ -995,12 +1072,27 @@ ipcMain.handle('get-system-stats', async () => {
             });
 
             const getCpuDetails = () => new Promise(resolve => {
-                stats.cpu.model = os.cpus()[0].model;
-                stats.cpu.cores = os.cpus().length;
+                if (cachedStaticStats && cachedStaticStats.cpu.model !== 'Unknown') {
+                    stats.cpu.model = cachedStaticStats.cpu.model;
+                    stats.cpu.cores = cachedStaticStats.cpu.cores;
+                    resolve();
+                    return;
+                }
+                const cpus = os.cpus();
+                if (cpus && cpus.length > 0) {
+                    stats.cpu.model = cpus[0].model;
+                    stats.cpu.cores = cpus.length;
+                }
                 resolve();
             });
 
             const getSecurityInfo = () => new Promise(resolve => {
+                if (cachedStaticStats && cachedStaticStats.os.firewallProvider !== 'Unknown') {
+                    stats.os.firewallProvider = cachedStaticStats.os.firewallProvider;
+                    stats.os.firewallStatus = cachedDynamicStats ? cachedDynamicStats.os.firewallStatus : 'Active';
+                    resolve();
+                    return;
+                }
                 exec('wmic /namespace:\\\\root\\securitycenter2 path FirewallProduct get displayName', (err, stdout) => {
                     if (!err && stdout) {
                         const lines = stdout.trim().split('\n').slice(1).filter(l => l.trim());
@@ -1018,10 +1110,25 @@ ipcMain.handle('get-system-stats', async () => {
             });
 
             const getStorage = () => new Promise(resolve => {
-                exec('powershell "Get-PhysicalDisk | Select-Object FriendlyName, MediaType, Size | ConvertTo-Json"', (err, stdout) => {
-                    let physicals = [];
-                    try { if (!err && stdout) physicals = JSON.parse(stdout); } catch (e) { }
-                    if (!Array.isArray(physicals)) physicals = [physicals];
+                const runPowerShell = () => new Promise(resPs => {
+                    if (global.cachedPhysicalDisks) {
+                        resPs(global.cachedPhysicalDisks);
+                        return;
+                    }
+                    exec('powershell "Get-PhysicalDisk | Select-Object FriendlyName, MediaType, Size | ConvertTo-Json"', (err, stdout) => {
+                        let physicals = [];
+                        try {
+                            if (!err && stdout) {
+                                physicals = JSON.parse(stdout);
+                            }
+                        } catch (e) { }
+                        if (!Array.isArray(physicals)) physicals = [physicals];
+                        global.cachedPhysicalDisks = physicals;
+                        resPs(physicals);
+                    });
+                });
+
+                runPowerShell().then((physicals) => {
                     exec('wmic logicaldisk where "DriveType=3" get Caption,FreeSpace,Size,VolumeName', (err2, stdout2) => {
                         if (!err2 && stdout2) {
                             const lines = stdout2.trim().split('\n').slice(1).filter(l => l.trim());
@@ -1031,13 +1138,11 @@ ipcMain.handle('get-system-stats', async () => {
                                 const free = parseInt(parts[1] || '0');
                                 const total = parseInt(parts[2] || '0');
                                 const label = parts.length > 3 ? parts[3] : '';
-                                const phys = physicals.length > 0 ? physicals[0] : { MediaType: 'Unknown', FriendlyName: 'Generic Disk' };
+                                const phys = (physicals && physicals.length > 0) ? physicals[0] : { MediaType: 'Unknown', FriendlyName: 'Generic Disk' };
 
-                                // Heuristic for Windows System Files if it's C: drive
                                 let windowsSize = 0;
                                 if (drive.toLowerCase() === 'c:') {
                                     windowsSize = 25 * 1024 * 1024 * 1024; // 25GB estimate
-                                    // Make sure it doesn't exceed used space
                                     const used = total - free;
                                     if (windowsSize > used) windowsSize = used * 0.4;
                                 }
@@ -1067,6 +1172,34 @@ ipcMain.handle('get-system-stats', async () => {
                 getSecurityInfo(),
                 getStorage()
             ]);
+
+            cachedStaticStats = {
+                cpu: stats.cpu,
+                mem: {
+                    total: stats.mem.total,
+                    type: stats.mem.type,
+                    speed: stats.mem.speed,
+                    slotsTotal: stats.mem.slotsTotal,
+                    slotsUsed: stats.mem.slotsUsed
+                },
+                os: {
+                    platform: stats.os.platform,
+                    distro: stats.os.distro,
+                    release: stats.os.release,
+                    arch: stats.os.arch,
+                    hostname: stats.os.hostname,
+                    computerName: stats.os.computerName,
+                    firewallProvider: stats.os.firewallProvider
+                }
+            };
+
+            cachedDynamicStats = {
+                storage: stats.storage,
+                os: {
+                    firewallStatus: stats.os.firewallStatus
+                }
+            };
+            lastDynamicFetchTime = now;
 
         } catch (e) {
             console.error("Stats Error:", e);
@@ -1240,8 +1373,10 @@ ipcMain.handle('scan-range', async (event, { startIp, endIp }) => {
     const total = end - start + 1;
     let scanned = 0;
     const foundIpsSet = new Set();
-    const batchSize = 25;
-    const pingCmd = process.platform === 'win32' ? 'ping -n 1 -w 200' : 'ping -c 1 -W 1';
+    // Adaptive: smaller batches for large scans to avoid socket exhaustion
+    const batchSize = total > 512 ? 15 : total > 128 ? 20 : 30;
+    // Longer timeout (500ms) for WiFi, congested, or remote-segment networks
+    const pingCmd = process.platform === 'win32' ? 'ping -n 1 -w 500' : 'ping -c 1 -W 1';
 
     scanStoppedFlag = false;
 
@@ -1251,10 +1386,13 @@ ipcMain.handle('scan-range', async (event, { startIp, endIp }) => {
         for (let j = i; j < i + batchSize && j <= end; j++) {
             const ip = intToIp(j);
             promises.push(new Promise(res => {
-                exec(`${pingCmd} ${ip}`, (err, stdout) => {
+                exec(`${pingCmd} ${ip}`, { timeout: 3000 }, (err, stdout) => {
                     scanned++;
-                    if (!err && (stdout.toLowerCase().includes('ttl=') || stdout.toLowerCase().includes('bytes from'))) foundIpsSet.add(ip);
-                    if (mainWindow && scanned % 5 === 0) {
+                    const output = (stdout || '').toLowerCase();
+                    if (!err && (output.includes('ttl=') || output.includes('bytes from'))) {
+                        foundIpsSet.add(ip);
+                    }
+                    if (mainWindow) {
                         mainWindow.webContents.send('scan-range-progress', { current: scanned, total });
                     }
                     res();
@@ -1265,19 +1403,56 @@ ipcMain.handle('scan-range', async (event, { startIp, endIp }) => {
     }
     if (mainWindow) mainWindow.webContents.send('scan-range-progress', { current: total, total });
 
+    // Phase 2: ARP-based discovery & Hostname resolution
     return new Promise((resolve) => {
-        exec('arp -a', (err, stdout) => {
+        // Enforce chcp 65001 (UTF-8) for safe ARP parsing across languages
+        exec('chcp 65001 > nul & arp -a', { encoding: 'utf8' }, async (err, stdout) => {
             const arpTable = stdout || "";
-            const result = Array.from(foundIpsSet).map(ip => {
-                const escapedIp = ip.replace(/\./g, '\\.');
-                const regex = new RegExp(`${escapedIp}\\s+([0-9a-fA-F:-]{12,17})`, 'i');
-                const match = arpTable.match(regex);
+            const arpLines = arpTable.split('\n');
+            const arpMap = new Map(); // ip -> mac
+
+            for (const line of arpLines) {
+                // Windows ARP format: "  192.168.1.5     00-11-22-33-44-55     dynamic"
+                // The chcp 65001 helps prevent weird characters in the type column
+                const arpMatch = line.match(/\s+([\d]+\.[\d]+\.[\d]+\.[\d]+)\s+([0-9a-fA-F]{2}[-:][0-9a-fA-F]{2}[-:][0-9a-fA-F]{2}[-:][0-9a-fA-F]{2}[-:][0-9a-fA-F]{2}[-:][0-9a-fA-F]{2})/i);
+                if (arpMatch) {
+                    const arpIp = arpMatch[1];
+                    const arpMac = arpMatch[2].toUpperCase().replace(/-/g, ':');
+                    // Only include ARP entries within our scan range and ignore multicast/broadcast
+                    const arpIpInt = ipToInt(arpIp);
+                    if (arpIpInt >= start && arpIpInt <= end && !arpIp.startsWith('224.') && !arpIp.endsWith('.255')) {
+                        arpMap.set(arpIp, arpMac);
+                        foundIpsSet.add(arpIp);
+                    }
+                }
+            }
+
+            const dnsPromises = Array.from(foundIpsSet).map(async (ip) => {
+                const mac = arpMap.get(ip) || 'Unknown';
+                let hostname = '';
+                try {
+                    const dns = require('dns').promises;
+                    const hostnames = await dns.reverse(ip);
+                    if (hostnames && hostnames.length > 0) {
+                        hostname = hostnames[0].split('.')[0]; // Short hostname
+                    }
+                } catch (e) {
+                    // Ignore DNS resolution failures (expected for most generic devices)
+                }
+                
                 return {
                     ip: ip,
-                    mac: match ? match[1].toUpperCase().replace(/-/g, ':') : 'Unknown',
+                    mac: mac,
+                    hostname: hostname,
                     status: 'online'
                 };
             });
+
+            const result = await Promise.all(dnsPromises);
+
+            // Sort by IP for consistent output
+            result.sort((a, b) => ipToInt(a.ip) - ipToInt(b.ip));
+
             resolve(result);
         });
     });
@@ -1457,6 +1632,67 @@ ipcMain.handle('find-and-set-ip', async (event, { ifaceName, targetIp }) => {
     });
 });
 
+ipcMain.handle('find-free-ip-and-assign', async (event, { ifaceName, startIp, endIp, subnetMask, gateway }) => {
+    if (process.platform !== 'win32') return { success: false, message: 'Windows only' };
+    if (!isSafeString(ifaceName) || !isValidIp(startIp) || !isValidIp(endIp)) return { success: false, message: 'Invalid Input' };
+    
+    const ipToInt = (ip) => ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+    const intToIp = (int) => [(int >>> 24) & 255, (int >>> 16) & 255, (int >>> 8) & 255, int & 255].join('.');
+    
+    const start = ipToInt(startIp);
+    const end = ipToInt(endIp);
+    if (end < start || (end - start) > 500) return { success: false, message: 'Invalid or too large range (max 500 IPs)' };
+
+    const checkIp = (ip) => {
+        return new Promise(resolve => {
+            exec(`ping -n 1 -w 250 ${ip}`, (err, stdout) => {
+                const output = (stdout || '').toLowerCase();
+                const isTaken = output.includes('ttl=') || (!output.includes('unreachable') && !output.includes('timed out') && output.includes('reply from'));
+                resolve(isTaken);
+            });
+        });
+    };
+
+    let candidateIp = '';
+    // Look for a free IP in the range
+    for (let current = start; current <= end; current++) {
+        const ip = intToIp(current);
+        const taken = await checkIp(ip);
+        if (!taken) {
+            // Confirm one more time with a slightly longer ping timeout or check ARP
+            const takenDoubleCheck = await checkIp(ip);
+            if (!takenDoubleCheck) {
+                candidateIp = ip;
+                break;
+            }
+        }
+    }
+
+    if (!candidateIp) {
+        return { success: false, message: 'No free IP address found in the specified range.' };
+    }
+
+    const parts = candidateIp.split('.');
+    const finalGateway = gateway && isValidIp(gateway) ? gateway : `${parts[0]}.${parts[1]}.${parts[2]}.1`;
+    const finalMask = subnetMask && isValidIp(subnetMask) ? subnetMask : '255.255.255.0';
+    const cmd = `netsh interface ip set address "${ifaceName}" static ${candidateIp} ${finalMask} ${finalGateway}`;
+    
+    return new Promise((resolve) => {
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                const errStr = (stderr || error.message).toLowerCase();
+                if (errStr.includes('admin') || errStr.includes('denied')) {
+                    resolve({ success: false, message: 'Admin privileges required' });
+                } else {
+                    resolve({ success: false, message: `Failed to set IP: ${errStr}` });
+                }
+            } else {
+                resolve({ success: true, assignedIp: candidateIp });
+            }
+        });
+    });
+});
+
 ipcMain.handle('show-notification', (event, { title, body }) => {
     if (Notification.isSupported()) {
         const themedIcon = getThemedIcon(currentAppTheme);
@@ -1503,6 +1739,64 @@ ipcMain.handle('check-disk-errors', async (event, driveLetter) => {
         });
     });
 });
+
+ipcMain.handle('wake-on-lan', async (event, { mac, broadcastIp = '255.255.255.255' }) => {
+    return new Promise((resolve) => {
+        try {
+            const macClean = mac.replace(/[^0-9a-fA-F]/g, '');
+            if (macClean.length !== 12) return resolve({ success: false, error: 'Invalid MAC address' });
+            
+            const macBuffer = Buffer.from(macClean, 'hex');
+            const magicPacket = Buffer.alloc(102);
+            for (let i = 0; i < 6; i++) magicPacket[i] = 0xff;
+            for (let i = 0; i < 16; i++) macBuffer.copy(magicPacket, 6 + (i * 6));
+            
+            const socket = dgram.createSocket('udp4');
+            socket.bind(() => {
+                socket.setBroadcast(true);
+                socket.send(magicPacket, 0, magicPacket.length, 9, broadcastIp, (err) => {
+                    socket.close();
+                    if (err) resolve({ success: false, error: err.message });
+                    else resolve({ success: true });
+                });
+            });
+        } catch (e) {
+            resolve({ success: false, error: e.message });
+        }
+    });
+});
+
+ipcMain.handle('run-speed-test', async () => {
+    return new Promise((resolve) => {
+        const url = 'https://speed.cloudflare.com/__down?bytes=25485760'; // ~25MB
+        const startTime = Date.now();
+        const req = https.get(url, (res) => {
+            if (res.statusCode !== 200) {
+                return resolve({ success: false, error: `Server responded with status ${res.statusCode}` });
+            }
+            let downloadedBytes = 0;
+            res.on('data', (chunk) => {
+                downloadedBytes += chunk.length;
+            });
+            res.on('end', () => {
+                const endTime = Date.now();
+                const durationSeconds = (endTime - startTime) / 1000;
+                const megabits = (downloadedBytes * 8) / 1000000;
+                const mbps = +(megabits / durationSeconds).toFixed(2);
+                resolve({ success: true, mbps, duration: durationSeconds });
+            });
+        });
+        
+        req.on('error', (err) => {
+            resolve({ success: false, error: err.message });
+        });
+        req.setTimeout(15000, () => {
+            req.abort();
+            resolve({ success: false, error: 'Timeout reached' });
+        });
+    });
+});
+
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();

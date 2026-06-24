@@ -28,14 +28,16 @@ export const useNetworkOps = (selectedInterface: any, t: any) => {
         }
     };
 
-    const autoConnect = async (targetIp: string) => {
+    const autoConnect = async (targetIp: string, openBrowser: boolean = true) => {
         if (!selectedInterface) return { success: false, message: 'No interface selected' };
         setIsApplying(true);
         try {
             if (window.electronAPI) {
                 const result = await window.electronAPI.findAndSetIp({ ifaceName: selectedInterface.name, targetIp: targetIp });
                 if (result.success) {
-                    setTimeout(() => window.open(`http://${targetIp}`, '_blank'), 1000);
+                    if (openBrowser) {
+                        setTimeout(() => window.open(`http://${targetIp}`, '_blank'), 1000);
+                    }
                     return { success: true, message: `Assigned IP: ${result.assignedIp}` };
                 } else {
                     return { success: false, message: result.message || 'Failed' };
@@ -48,5 +50,24 @@ export const useNetworkOps = (selectedInterface: any, t: any) => {
         }
     };
 
-    return { isApplying, applyProfile, autoConnect, showAdminPrompt, setShowAdminPrompt };
+    const findFreeIpAndAssign = async (startIp: string, endIp: string, gateway?: string, subnetMask?: string) => {
+        if (!selectedInterface) return { success: false, message: 'No interface selected' };
+        setIsApplying(true);
+        try {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.findFreeIpAndAssign({ ifaceName: selectedInterface.name, startIp, endIp, gateway, subnetMask });
+                if (result.success) {
+                    return { success: true, message: `Free IP found & assigned: ${result.assignedIp}` };
+                } else {
+                    return { success: false, message: result.message || 'Failed to locate/assign IP' };
+                }
+            }
+        } catch (e: any) {
+            return { success: false, message: `Error: ${e.message}` };
+        } finally {
+            setIsApplying(false);
+        }
+    };
+
+    return { isApplying, applyProfile, autoConnect, findFreeIpAndAssign, showAdminPrompt, setShowAdminPrompt };
 };

@@ -277,7 +277,7 @@ export const ClipboardManager: React.FC<ClipboardManagerProps> = ({
       )}
 
       <div className="flex flex-col gap-2">
-        {snippets.map((snippet) => (
+        {snippets.map((snippet, idx) => (
           <div
             key={snippet.id}
             draggable={!!onReorder}
@@ -285,8 +285,13 @@ export const ClipboardManager: React.FC<ClipboardManagerProps> = ({
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, snippet.id)}
             onClick={() => handleCopy(snippet)}
-            className={`group flex items-center justify-between p-3 bg-theme-bg-secondary border border-theme-border-primary hover:border-theme-brand-primary rounded-lg cursor-pointer transition-all duration-200 hover:bg-theme-bg-hover shadow-sm ${draggedId === snippet.id ? 'opacity-50 border-theme-brand-primary border-dashed' : ''}`}
+            style={{ animationDelay: `${idx * 40}ms` }}
+            className={`group relative flex items-center justify-between p-4 bg-theme-bg-secondary border border-theme-border-primary hover:border-theme-brand-primary/50 rounded-2xl cursor-pointer transition-all duration-500 hover:bg-theme-bg-tertiary shadow-sm hover:shadow-xl hover:shadow-theme-brand-primary/5 hover:-translate-y-0.5 animate-in slide-in-from-bottom-4 fill-mode-both overflow-hidden ${draggedId === snippet.id ? 'opacity-50 border-theme-brand-primary border-dashed' : ''}`}
           >
+            {/* Ink Ripple Overlay */}
+            {copiedId === snippet.id && (
+              <div className="absolute inset-0 bg-emerald-500/10 animate-ink-ripple pointer-events-none" />
+            )}
             <div className="flex-1 min-w-0 flex items-center gap-4">
               <div className={`p-2 rounded-lg transition-colors ${copiedId === snippet.id
                 ? 'bg-emerald-500/20 text-emerald-500'

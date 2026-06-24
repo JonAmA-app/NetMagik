@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Profile, IpType, Language } from '../types';
-import { Trash2, Shield, Check, Zap, Server, Edit2, HelpCircle, ChevronRight, MousePointerClick, Settings, RefreshCw, Activity, Monitor, Layout } from 'lucide-react';
+import { Trash2, Shield, Check, Zap, Server, Edit2, HelpCircle, ChevronRight, MousePointerClick, Settings, RefreshCw, Activity, Monitor, Layout, Folder, FolderOpen, ChevronDown } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
 
 interface ProfileListProps {
@@ -13,34 +13,276 @@ interface ProfileListProps {
   isAdmin: boolean;
   onViewInventory: (profileId: string) => void;
   onUpdateOrder?: (profiles: Profile[]) => void;
+  highlightId?: string | null;
 }
 
-export const ProfileList: React.FC<ProfileListProps> = ({ profiles, onApply, onEdit, onDelete, isApplying, language, isAdmin, onViewInventory, onUpdateOrder }) => {
+// ─── Single Profile Card ──────────────────────────────────────────────────────
+const ProfileCard: React.FC<{
+  profile: Profile;
+  index: number;
+  isApplying: boolean;
+  isAdmin: boolean;
+  language: Language;
+  onApply: (p: Profile) => void;
+  onEdit: (p: Profile) => void;
+  onDelete: (id: string) => void;
+  onViewInventory: (id: string) => void;
+  draggable: boolean;
+  isDragging: boolean;
+  onDragStart: (i: number) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (i: number) => void;
+  highlighted: boolean;
+}> = ({ profile, index, isApplying, isAdmin, language, onApply, onEdit, onDelete, onViewInventory, draggable, isDragging, onDragStart, onDragOver, onDrop, highlighted }) => {
+  const t = TRANSLATIONS[language] || TRANSLATIONS['en'];
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Scroll into view when highlighted
+  useEffect(() => {
+    if (highlighted && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [highlighted]);
+
+  return (
+    <div
+      ref={cardRef}
+      draggable={draggable}
+      onDragStart={() => onDragStart(index)}
+      onDragOver={onDragOver}
+      onDrop={() => onDrop(index)}
+      className={`group bg-theme-bg-secondary border rounded-xl p-3 px-4 transition-all duration-300 flex flex-col gap-2.5 relative overflow-hidden
+        ${draggable ? 'cursor-grab active:cursor-grabbing' : ''}
+        ${isDragging ? 'opacity-50' : ''}
+        ${highlighted
+          ? 'border-theme-brand-primary shadow-xl shadow-theme-brand-primary/25 ring-2 ring-theme-brand-primary/40 animate-pulse-highlight'
+          : 'border-theme-border-primary hover:border-theme-brand-primary/30 hover:shadow-lg hover:shadow-theme-brand-primary/5'
+        }`}
+    >
+      {/* Main Content Area */}
+      <div className="flex flex-col md:flex-row md:items-center gap-3">
+        {/* Type Indicator Bar */}
+        <div className={`absolute left-0 top-0 bottom-0 w-1 transition-all duration-300 ${profile.type === IpType.DHCP ? 'bg-indigo-500' : 'bg-orange-500'
+          } group-hover:w-1.5`} />
+
+        {/* Profile Info */}
+        <div className="flex items-center gap-3 min-w-[180px]">
+          <div className={`p-2 rounded-lg shrink-0 transition-transform duration-500 group-hover:scale-105 ${profile.type === IpType.DHCP
+            ? 'bg-theme-bg-tertiary text-sky-500'
+            : 'bg-theme-bg-tertiary text-orange-500'
+            }`}>
+            {profile.type === IpType.DHCP ? <Zap size={16} /> : <Server size={16} />}
+          </div>
+          <div className="min-w-0">
+            <h4 className="font-bold text-sm text-theme-text-primary leading-tight truncate">{profile.name}</h4>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[9px] font-bold text-theme-text-muted uppercase tracking-wider">{profile.type === IpType.DHCP ? t.automaticMode : t.staticMode}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Details Section */}
+        <div className="flex-1 min-w-0 md:border-l border-theme-border-secondary md:pl-4">
+          {profile.type === IpType.STATIC && profile.config ? (
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold text-theme-text-muted uppercase tracking-widest">{t.address}</span>
+                <span className="font-mono text-xs font-semibold text-theme-text-secondary mt-0.5">{profile.config.ipAddress}</span>
+              </div>
+              {profile.config.additionalIps && profile.config.additionalIps.length > 0 && (
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-theme-text-muted uppercase tracking-widest">
+                    {(t as any).additionalIpsTitle || 'Additional IPs'}
+                  </span>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    {profile.config.additionalIps.map((addIp, idx) => (
+                      <span key={idx} className="font-mono text-[10px] bg-theme-bg-tertiary text-theme-text-secondary px-1.5 py-0.5 rounded border border-theme-border-secondary" title={`Subnet: ${addIp.subnetMask}`}>
+                        {addIp.ipAddress}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="hidden sm:flex flex-col">
+                <span className="text-[9px] font-bold text-theme-text-muted uppercase tracking-widest">{t.gateway}</span>
+                <span className="font-mono text-xs font-semibold text-theme-text-secondary mt-0.5">{profile.config.gateway || '---'}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-theme-text-muted italic">
+              <Activity size={12} className="text-sky-400" />
+              <span>{t.dhcpDescription}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => onApply(profile)}
+            disabled={isApplying || !isAdmin}
+            className={`neo-button flex-1 md:flex-none h-8 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 text-xs shadow-sm disabled:opacity-50 ${!isAdmin
+              ? 'bg-theme-bg-tertiary text-theme-text-muted border border-theme-border-primary cursor-not-allowed'
+              : 'bg-theme-brand-primary hover:bg-theme-brand-hover text-white shadow-theme-brand-primary/20'
+              }`}
+          >
+            {isApplying ? (
+              <RefreshCw size={14} className="animate-spin" />
+            ) : (
+              <>
+                <span>{t.applyProfile}</span>
+                <Check size={14} />
+              </>
+            )}
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(profile); }}
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-theme-text-muted hover:bg-theme-bg-hover hover:text-theme-brand-primary transition-all border border-transparent hover:border-theme-border-secondary shrink-0"
+              title={t.edit}
+            >
+              <Edit2 size={15} />
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(profile.id); }}
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-theme-text-muted hover:bg-rose-500/10 hover:text-rose-500 transition-all border border-transparent hover:border-rose-500/30 shrink-0"
+              title={t.delete}
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Inventory Access Footer */}
+      <div className="border-t border-theme-border-secondary/40 pt-2 mt-0.5 flex justify-between items-center px-1">
+        <div className="flex items-center gap-2">
+          <Monitor size={12} className="text-theme-text-muted" />
+          <span className="text-[9px] font-bold text-theme-text-muted uppercase tracking-widest font-mono">
+            {profile.devices?.length || 0} {t.savedDevices}
+          </span>
+        </div>
+        <button
+          onClick={() => onViewInventory(profile.id)}
+          className="flex items-center gap-1.5 px-3 py-1 bg-theme-bg-tertiary text-theme-text-secondary rounded-md text-[9px] font-bold hover:bg-theme-brand-primary hover:text-white transition-all border border-transparent hover:border-theme-brand-hover"
+        >
+          <Layout size={10} />
+          {t.manageInventory}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export const ProfileList: React.FC<ProfileListProps> = ({
+  profiles, onApply, onEdit, onDelete, isApplying, language, isAdmin, onViewInventory, onUpdateOrder, highlightId
+}) => {
   const t = TRANSLATIONS[language] || TRANSLATIONS['en'];
   const [showHelp, setShowHelp] = useState(false);
-  const [draggedProfileIndex, setDraggedProfileIndex] = useState<number | null>(null);
+  const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('collapsedFolders');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
-  const handleDragStart = (index: number) => {
-    setDraggedProfileIndex(index);
+  useEffect(() => {
+    localStorage.setItem('collapsedFolders', JSON.stringify([...collapsedFolders]));
+  }, [collapsedFolders]);
+
+  type Block =
+    | { type: 'folder', id: string, name: string, profiles: Profile[], originalIndexes: number[] }
+    | { type: 'profile', id: string, profile: Profile, originalIndex: number };
+
+  const blocks: Block[] = [];
+  const seenFolders = new Set<string>();
+
+  profiles.forEach((p, index) => {
+    const folderName = p.folder?.trim();
+    if (folderName) {
+      if (!seenFolders.has(folderName)) {
+        seenFolders.add(folderName);
+        const folderProfiles = profiles.map((px, idx) => ({ px, idx })).filter(x => x.px.folder?.trim() === folderName);
+        blocks.push({
+          type: 'folder',
+          id: `folder-${folderName}`,
+          name: folderName,
+          profiles: folderProfiles.map(x => x.px),
+          originalIndexes: folderProfiles.map(x => x.idx)
+        });
+      }
+    } else {
+      blocks.push({
+        type: 'profile',
+        id: `profile-${p.id}`,
+        profile: p,
+        originalIndex: index
+      });
+    }
+  });
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedBlockIndex(index);
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+    }
   };
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+  const handleDrop = (index: number) => {
+    if (draggedBlockIndex === null || !onUpdateOrder) return;
+    if (draggedBlockIndex === index) {
+      setDraggedBlockIndex(null);
+      return;
+    }
+    
+    const newBlocks = [...blocks];
+    const [dragged] = newBlocks.splice(draggedBlockIndex, 1);
+    newBlocks.splice(index, 0, dragged);
+
+    const newProfiles = newBlocks.flatMap(b => b.type === 'folder' ? b.profiles : [b.profile]);
+    onUpdateOrder(newProfiles);
+    setDraggedBlockIndex(null);
   };
 
-  const handleDrop = (index: number) => {
-    if (draggedProfileIndex === null || !onUpdateOrder) return;
-    const newProfiles = [...profiles];
-    const draggedItem = newProfiles[draggedProfileIndex];
-    newProfiles.splice(draggedProfileIndex, 1);
-    newProfiles.splice(index, 0, draggedItem);
-    onUpdateOrder(newProfiles);
-    setDraggedProfileIndex(null);
+  const toggleFolder = (folderName: string) => {
+    setCollapsedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderName)) next.delete(folderName);
+      else next.add(folderName);
+      return next;
+    });
   };
+
+  const cardProps = (profile: Profile, flatIndex: number) => ({
+    profile,
+    index: flatIndex,
+    isApplying,
+    isAdmin,
+    language,
+    onApply,
+    onEdit,
+    onDelete,
+    onViewInventory,
+    draggable: false, // Intra-folder drag disabled to simplify block dragging
+    isDragging: false,
+    onDragStart: () => {},
+    onDragOver: () => {},
+    onDrop: () => {},
+    highlighted: highlightId === profile.id,
+  });
 
   return (
     <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-500">
-      {/* Admin Warning Banner */}
       {!isAdmin && (
         <div className="glass shadow-lg shadow-orange-500/10 border-orange-200/50 dark:border-orange-500/20 rounded-2xl p-5">
           <div className="flex items-start justify-between gap-4">
@@ -92,118 +334,60 @@ export const ProfileList: React.FC<ProfileListProps> = ({ profiles, onApply, onE
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3">
-        {profiles.map((profile, index) => (
-          <div
-            key={profile.id}
-            draggable={!!onUpdateOrder}
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(index)}
-            className={`group bg-theme-bg-secondary border border-theme-border-primary hover:border-theme-brand-primary/30 hover:shadow-xl hover:shadow-theme-brand-primary/5 rounded-2xl p-4 transition-all duration-300 flex flex-col gap-4 relative overflow-hidden ${!!onUpdateOrder ? 'cursor-grab active:cursor-grabbing' : ''} ${draggedProfileIndex === index ? 'opacity-50' : ''}`}
-          >
-            {/* Main Content Area */}
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
-              {/* Type Indicator Bar */}
-              <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all duration-300 ${profile.type === IpType.DHCP ? 'bg-indigo-500' : 'bg-orange-500'
-                } group-hover:w-2`} />
+      <div className="flex flex-col gap-4">
+        {blocks.map((block, index) => {
+          if (block.type === 'folder') {
+            const isCollapsed = collapsedFolders.has(block.name);
+            return (
+              <div 
+                key={block.id} 
+                className={`rounded-2xl border border-theme-border-primary overflow-hidden ${draggedBlockIndex === index ? 'opacity-50' : ''}`}
+                draggable={!!onUpdateOrder}
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(index)}
+              >
+                <button
+                  onClick={() => toggleFolder(block.name)}
+                  className={`w-full flex items-center gap-3 px-5 py-3.5 bg-theme-bg-secondary hover:bg-theme-bg-hover transition-colors group ${!!onUpdateOrder ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                >
+                  {isCollapsed
+                    ? <Folder size={16} className="text-theme-brand-primary shrink-0" />
+                    : <FolderOpen size={16} className="text-theme-brand-primary shrink-0" />
+                  }
+                  <span className="flex-1 text-left text-sm font-bold text-theme-text-primary">{block.name}</span>
+                  <span className="text-[10px] font-bold text-theme-text-muted bg-theme-bg-tertiary px-2 py-0.5 rounded-full">
+                    {block.profiles.length}
+                  </span>
+                  <ChevronDown size={16} className={`text-theme-text-muted transition-transform duration-300 ${isCollapsed ? '-rotate-90' : ''}`} />
+                </button>
 
-              {/* Profile Info */}
-              <div className="flex items-center gap-4 min-w-[200px]">
-                <div className={`p-3 rounded-xl shrink-0 transition-transform duration-500 group-hover:scale-110 ${profile.type === IpType.DHCP
-                  ? 'bg-theme-bg-tertiary text-sky-500'
-                  : 'bg-theme-bg-tertiary text-orange-500'
-                  }`}>
-                  {profile.type === IpType.DHCP ? <Zap size={20} /> : <Server size={20} />}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-bold text-theme-text-primary leading-tight truncate">{profile.name}</h4>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-bold text-theme-text-muted uppercase tracking-wider">{profile.type === IpType.DHCP ? t.automaticMode : t.staticMode}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Details Section */}
-              <div className="flex-1 min-w-0 md:border-l border-theme-border-secondary md:pl-6">
-                {profile.type === IpType.STATIC && profile.config ? (
-                  <div className="flex flex-wrap items-center gap-8">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-theme-text-muted uppercase tracking-widest">{t.address}</span>
-                      <span className="font-mono text-sm font-semibold text-theme-text-secondary mt-0.5">{profile.config.ipAddress}</span>
-                    </div>
-                    <div className="hidden sm:flex flex-col">
-                      <span className="text-[10px] font-bold text-theme-text-muted uppercase tracking-widest">{t.gateway}</span>
-                      <span className="font-mono text-sm font-semibold text-theme-text-secondary mt-0.5">{profile.config.gateway || '---'}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm text-theme-text-muted italic">
-                    <Activity size={14} className="text-sky-400" />
-                    <span>{t.dhcpDescription}</span>
+                {!isCollapsed && (
+                  <div className="p-3 pt-2 bg-theme-bg-primary/40 grid grid-cols-1 gap-3">
+                    {block.profiles.map((profile, i) => (
+                      <ProfileCard key={profile.id} {...cardProps(profile, block.originalIndexes[i])} />
+                    ))}
                   </div>
                 )}
               </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={() => onApply(profile)}
-                  disabled={isApplying || !isAdmin}
-                  className={`neo-button flex-1 md:flex-none h-11 px-6 rounded-xl font-bold transition-all flex items-center justify-center gap-3 text-sm shadow-md disabled:opacity-50 ${!isAdmin
-                    ? 'bg-theme-bg-tertiary text-theme-text-muted border border-theme-border-primary cursor-not-allowed'
-                    : 'bg-theme-brand-primary hover:bg-theme-brand-hover text-white shadow-theme-brand-primary/20'
-                    }`}
-                >
-                  {isApplying ? (
-                    <RefreshCw size={16} className="animate-spin" />
-                  ) : (
-                    <>
-                      <span>{t.applyProfile}</span>
-                      <Check size={18} />
-                    </>
-                  )}
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onEdit(profile); }}
-                    className="h-11 w-11 flex items-center justify-center rounded-xl text-theme-text-muted hover:bg-theme-bg-hover hover:text-theme-brand-primary transition-all border border-transparent hover:border-theme-border-secondary shrink-0"
-                    title={t.edit}
-                  >
-                    <Edit2 size={18} />
-                  </button>
-
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onDelete(profile.id); }}
-                    className="h-11 w-11 flex items-center justify-center rounded-xl text-theme-text-muted hover:bg-rose-500/10 hover:text-rose-500 transition-all border border-transparent hover:border-rose-500/30 shrink-0"
-                    title={t.delete}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Inventory Access Footer */}
-            <div className="md:border-t border-theme-border-secondary pt-3 mt-1 flex justify-between items-center px-1">
-              <div className="flex items-center gap-2">
-                <Monitor size={14} className="text-theme-text-muted" />
-                <span className="text-[10px] font-bold text-theme-text-muted uppercase tracking-widest font-mono">
-                  {profile.devices?.length || 0} {t.savedDevices}
-                </span>
-              </div>
-              <button
-                onClick={() => onViewInventory(profile.id)}
-                className="flex items-center gap-2 px-4 py-1.5 bg-theme-bg-tertiary text-theme-text-secondary rounded-lg text-[10px] font-bold hover:bg-theme-brand-primary hover:text-white transition-all border border-transparent hover:border-theme-brand-hover"
+            );
+          } else {
+            return (
+              <div 
+                key={block.id} 
+                draggable={!!onUpdateOrder}
+                onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, index); }}
+                onDragOver={handleDragOver}
+                onDrop={(e) => { e.stopPropagation(); handleDrop(index); }}
+                className={`${draggedBlockIndex === index ? 'opacity-50' : ''} ${!!onUpdateOrder ? 'cursor-grab active:cursor-grabbing' : ''}`}
               >
-                <Layout size={12} />
-                {t.manageInventory}
-              </button>
-            </div>
-          </div>
-        ))}
+                <ProfileCard {...cardProps(block.profile, block.originalIndex)} />
+              </div>
+            );
+          }
+        })}
       </div>
     </div>
   );
 };
+

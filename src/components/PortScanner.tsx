@@ -14,11 +14,12 @@ interface PortScannerProps {
 
 const PORT_DESCRIPTIONS: Record<number, string> = {
     20: 'FTP Data', 21: 'FTP Control', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS', 80: 'HTTPWeb', 110: 'POP3',
-    143: 'IMAP', 443: 'HTTPS', 3306: 'MySQL', 3389: 'RDP', 5432: 'PostgreSQL', 5900: 'VNC', 6379: 'Redis',
+    135: 'RPC', 139: 'NetBIOS', 143: 'IMAP', 443: 'HTTPS', 445: 'SMB', 3306: 'MySQL', 3389: 'RDP', 5432: 'PostgreSQL', 5900: 'VNC', 6379: 'Redis',
     8080: 'HTTP-Alt', 8443: 'HTTPS-Alt', 554: 'RTSP', 5060: 'SIP', 27017: 'MongoDB'
 };
 
 const DEFAULT_PORTS = [21, 22, 23, 80, 443, 3389, 8080, 8443, 554, 5060];
+const VULNERABLE_PORTS = [21, 22, 23, 135, 139, 445, 3389, 5900];
 
 export const PortScanner: React.FC<PortScannerProps> = ({ language, initialIp }) => {
     const { success } = useToast();
@@ -29,7 +30,7 @@ export const PortScanner: React.FC<PortScannerProps> = ({ language, initialIp })
     const stopScanningRef = useRef(false);
     const [scanResults, setScanResults] = useState<{ port: number, status: 'open' | 'closed' }[]>([]);
 
-    const [selectedRange, setSelectedRange] = useState<'common' | 'wellKnown' | 'registered' | 'dynamic' | 'all'>('common');
+    const [selectedRange, setSelectedRange] = useState<'common' | 'wellKnown' | 'registered' | 'dynamic' | 'all' | 'securityAudit'>('common');
     const [showResetModal, setShowResetModal] = useState(false);
     
     // Progress Tracking
@@ -94,6 +95,8 @@ export const PortScanner: React.FC<PortScannerProps> = ({ language, initialIp })
             ports = Array.from({ length: 65535 - 49152 + 1 }, (_, i) => i + 49152);
         } else if (selectedRange === 'all') {
             ports = Array.from({ length: 65535 }, (_, i) => i + 1);
+        } else if (selectedRange === 'securityAudit') {
+            ports = VULNERABLE_PORTS;
         }
 
         const results: { port: number, status: 'open' | 'closed' }[] = [];
@@ -162,7 +165,10 @@ export const PortScanner: React.FC<PortScannerProps> = ({ language, initialIp })
                 <div className="flex bg-theme-bg-tertiary p-1 rounded-lg">
                     <select
                         value={selectedRange}
-                        onChange={(e) => setSelectedRange(e.target.value as any)}
+                        onChange={(e) => {
+                            setSelectedRange(e.target.value as any);
+                            setScanResults([]);
+                        }}
                         className="bg-transparent text-theme-text-primary text-sm font-medium px-4 py-2 outline-none cursor-pointer"
                     >
                         <option value="common" className="bg-theme-bg-secondary">{t.rangeCommon}</option>
@@ -170,6 +176,7 @@ export const PortScanner: React.FC<PortScannerProps> = ({ language, initialIp })
                         <option value="registered" className="bg-theme-bg-secondary">{t.rangeRegistered}</option>
                         <option value="dynamic" className="bg-theme-bg-secondary">{t.rangeDynamic}</option>
                         <option value="all" className="bg-theme-bg-secondary">{t.rangeAll}</option>
+                        <option value="securityAudit" className="bg-theme-bg-secondary text-rose-500 font-bold">{t.securityAudit || 'Security Audit (NSE)'}</option>
                     </select>
                 </div>
             </div>
@@ -254,27 +261,35 @@ export const PortScanner: React.FC<PortScannerProps> = ({ language, initialIp })
 
                 {scanResults.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        {scanResults.map((item, idx) => (
-                            <div key={idx} className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${item.status === 'open'
-                                ? 'bg-emerald-500/10 border-emerald-500/50 shadow-sm'
-                                : 'bg-theme-bg-tertiary border-theme-border-primary opacity-60'
-                                }`}>
-                                <span className="text-[10px] font-bold text-theme-text-primary uppercase">{item.port}</span>
-                                <span className="text-[9px] font-bold text-theme-text-tertiary uppercase tracking-tighter -mt-1">{PORT_DESCRIPTIONS[item.port] || 'TCP'}</span>
+                        {scanResults.map((item, idx) => {
+                            const isVulnerableOpen = selectedRange === 'securityAudit' && item.status === 'open';
+                            return (
+                            <div 
+                                key={idx} 
+                                style={{ animationDelay: `${idx * 20}ms` }}
+                                className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 fill-mode-both ${
+                                    isVulnerableOpen ? 'bg-rose-500/10 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.1)]' :
+                                    item.status === 'open'
+                                    ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                                    : 'bg-theme-bg-tertiary border-theme-border-primary opacity-60'
+                                }`}
+                            >
+                                <span className={`text-[10px] font-bold uppercase tracking-tighter ${isVulnerableOpen ? 'text-rose-500' : 'text-theme-text-primary'}`}>{item.port}</span>
+                                <span className={`text-[9px] font-bold uppercase tracking-tighter -mt-1 ${isVulnerableOpen ? 'text-rose-500/70' : 'text-theme-text-muted'}`}>{PORT_DESCRIPTIONS[item.port] || 'TCP'}</span>
                                 <div className="flex items-center gap-1.5 mt-1">
-                                    {item.status === 'open' ? <Unlock size={14} className="text-emerald-500" /> : <Lock size={14} className="text-theme-text-muted" />}
-                                    <span className={`text-sm font-bold ${item.status === 'open' ? 'text-emerald-500' : 'text-theme-text-muted'}`}>
-                                        {item.status === 'open' ? t.open : t.closed}
+                                    {isVulnerableOpen ? <Unlock size={14} className="text-rose-500" /> : item.status === 'open' ? <Unlock size={14} className="text-emerald-500" /> : <Lock size={14} className="text-theme-text-muted" />}
+                                    <span className={`text-sm font-bold ${isVulnerableOpen ? 'text-rose-500' : item.status === 'open' ? 'text-emerald-500' : 'text-theme-text-muted'}`}>
+                                        {item.status === 'open' ? (isVulnerableOpen ? 'VULNERABLE' : t.open) : t.closed}
                                     </span>
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 ) : (
                     !isScanning && (
-                        <div className="text-center py-12 text-theme-text-muted border-2 border-dashed border-theme-border-primary rounded-xl">
-                            <Network size={48} className="mx-auto mb-4 opacity-10" />
-                            <p className="text-sm">{t.enterIpToScan}</p>
+                        <div className="text-center py-12 text-theme-text-muted border-2 border-dashed border-theme-border-primary rounded-xl group/empty">
+                            <Network size={48} className="mx-auto mb-4 opacity-10 group-hover/empty:scale-110 transition-transform duration-500" />
+                            <p className="text-sm font-medium tracking-tight">{t.enterIpToScan}</p>
                         </div>
                     )
                 )}
@@ -292,10 +307,15 @@ export const PortScanner: React.FC<PortScannerProps> = ({ language, initialIp })
                                 <p className="text-sm font-bold text-theme-text-primary">{estimatedTime || t.calculating}</p>
                             </div>
                         </div>
-                        <div className="h-2 w-full bg-theme-bg-tertiary rounded-full overflow-hidden border border-theme-border-primary/50">
+                        <div className="h-2 w-full bg-theme-bg-tertiary rounded-full overflow-hidden border border-theme-border-primary/50 relative">
                             <div 
-                                className="h-full bg-theme-brand-primary transition-all duration-300 ease-out"
+                                className="h-full bg-gradient-to-r from-theme-brand-primary to-indigo-500 transition-all duration-300 ease-out"
                                 style={{ width: `${scanProgress}%` }}
+                            />
+                            {/* Scanning Beam */}
+                            <div 
+                                className="absolute top-0 bottom-0 w-24 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-scan-beam"
+                                style={{ left: `${scanProgress}%`, transform: 'translateX(-100%)' }}
                             />
                         </div>
                         <div className="flex justify-between mt-1">

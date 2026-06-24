@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { DeviceCredential, Language, Profile } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { useToast } from '../context/ToastContext';
-import { Search, Copy, Check, Server, Router, Wifi, Camera, HardDrive, CircleDot, Plus, Edit2, Trash2, X, Save, KeyRound, Zap } from 'lucide-react';
+import { Search, Copy, Check, Server, Router, Wifi, Camera, HardDrive, CircleDot, Plus, Edit2, Trash2, X, Save, KeyRound, Zap, Globe } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 
 interface CredentialLibraryProps {
@@ -13,7 +13,7 @@ interface CredentialLibraryProps {
   onUpdate: (cred: DeviceCredential) => void;
   onDelete: (id: string) => void;
   onApplyProfile: (profile: Profile) => void; // Legacy, kept for typing compatibility if needed
-  onAutoConnect: (targetIp: string) => void; // NEW: Smart connection
+  onAutoConnect: (targetIp: string, openBrowser: boolean) => void; // NEW: Smart connection
 }
 
 export const CredentialLibrary: React.FC<CredentialLibraryProps> = ({
@@ -189,11 +189,18 @@ export const CredentialLibrary: React.FC<CredentialLibraryProps> = ({
                     <Trash2 size={16} />
                   </button>
                   <button
-                    onClick={() => onAutoConnect(cred.ip)}
+                    onClick={() => onAutoConnect(cred.ip, false)}
                     className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 rounded-lg transition-colors"
-                    title={t.smartConnectTooltip}
+                    title={t.smartConnectNoBrowser || 'Auto-connect (Change IP only)'}
                   >
                     <Zap size={16} fill="currentColor" />
+                  </button>
+                  <button
+                    onClick={() => onAutoConnect(cred.ip, true)}
+                    className="p-2 bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 hover:bg-sky-200 rounded-lg transition-colors"
+                    title={t.smartConnectWithBrowser || 'Auto-connect & Open Web'}
+                  >
+                    <Globe size={16} />
                   </button>
                 </div>
               </div>

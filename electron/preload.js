@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     toggleInterface: (payload) => ipcRenderer.invoke('toggle-interface', payload),
     changeIpConfig: (payload) => ipcRenderer.invoke('change-ip-config', payload),
     findAndSetIp: (payload) => ipcRenderer.invoke('find-and-set-ip', payload),
+    findFreeIpAndAssign: (payload) => ipcRenderer.invoke('find-free-ip-and-assign', payload),
     executeNetworkCommand: (payload) => ipcRenderer.invoke('execute-network-command', payload),
     pingTarget: (payload) => ipcRenderer.invoke('ping-target', payload),
     scanRange: (payload) => ipcRenderer.invoke('scan-range', payload),
@@ -29,9 +30,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openExternalCmd: (payload) => ipcRenderer.invoke('open-external-cmd', payload),
     toggleFirewall: (payload) => ipcRenderer.invoke('toggle-firewall', payload),
     runTraceroute: (payload) => ipcRenderer.invoke('run-traceroute', payload),
+    wakeOnLan: (payload) => ipcRenderer.invoke('wake-on-lan', payload),
+    runSpeedTest: () => ipcRenderer.invoke('run-speed-test'),
     
     // Sistema y Archivos
-    getSystemStats: () => ipcRenderer.invoke('get-system-stats'),
+    getSystemStats: (options) => ipcRenderer.invoke('get-system-stats', options),
     getSystemEvents: () => ipcRenderer.invoke('get-system-events'),
     openEventViewer: () => ipcRenderer.invoke('open-event-viewer'),
     getInstalledPrograms: () => ipcRenderer.invoke('get-installed-programs'),

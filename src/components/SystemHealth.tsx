@@ -21,11 +21,11 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({ language, eggsActive
     const [diskCheckResult, setDiskCheckResult] = useState<{ success: boolean; output: string } | null>(null);
     const [showDiskModal, setShowDiskModal] = useState(false);
 
-    const fetchStats = async () => {
+    const fetchStats = async (force = false) => {
         setLoading(true);
         try {
             if (window.electronAPI) {
-                const data = await window.electronAPI.getSystemStats();
+                const data = await window.electronAPI.getSystemStats({ forceRefresh: force });
                 setStats(data);
             } else {
                 // NO SIMULATION - Only Real Data
@@ -40,7 +40,7 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({ language, eggsActive
 
     // Only fetch once on mount
     useEffect(() => {
-        fetchStats();
+        fetchStats(false);
     }, []);
 
 
@@ -57,7 +57,7 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({ language, eggsActive
         try {
             if (window.electronAPI) {
                 await window.electronAPI.toggleFirewall({ action });
-                fetchStats();
+                fetchStats(true);
             }
         } catch (e: any) {
             alert(e.message.includes('ADMIN') ? t.adminRequired : 'Failed to toggle firewall');
@@ -150,7 +150,7 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({ language, eggsActive
                             {t.pendingRename}: {stats.os.hostname}
                         </span>
                     )}
-                    <button onClick={fetchStats} disabled={loading} className="p-2 bg-theme-bg-tertiary rounded-lg hover:bg-theme-bg-hover transition-colors text-theme-text-muted">
+                    <button onClick={() => fetchStats(true)} disabled={loading} className="p-2 bg-theme-bg-tertiary rounded-lg hover:bg-theme-bg-hover transition-colors text-theme-text-muted">
                         <RefreshCw size={16} className={loading ? 'animate-spin text-theme-brand-primary' : ''} />
                     </button>
                 </div>
@@ -160,35 +160,43 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({ language, eggsActive
             <div className="flex flex-col gap-4">
 
                 {/* CPU Card */}
-                <div className="bg-theme-bg-secondary p-5 rounded-xl border border-theme-border-primary shadow-sm">
-                    <h3 className="font-bold text-theme-text-primary mb-3 flex items-center gap-2 text-xs uppercase tracking-wide">
-                        <Cpu size={16} className="text-theme-brand-primary" />
+                <div className="bg-theme-bg-secondary p-5 rounded-xl border border-theme-border-primary shadow-sm relative overflow-hidden group/card">
+                    <div className="absolute inset-0 bg-gradient-to-br from-theme-brand-primary/[0.03] to-transparent pointer-events-none" />
+                    <h3 className="font-bold text-theme-text-primary mb-3 flex items-center gap-2 text-xs uppercase tracking-wide relative z-10">
+                        <div className="relative">
+                            <Cpu size={16} className="text-theme-brand-primary" />
+                            <div className="absolute inset-0 bg-theme-brand-primary/20 blur-sm rounded-full animate-ping duration-[3000ms] pointer-events-none" />
+                        </div>
                         {t.processor}
                     </h3>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center relative z-10">
                         <div className="text-sm font-semibold text-theme-text-secondary">
                             {stats.cpu.model}
                         </div>
-                        <div className="text-xs bg-theme-brand-primary/10 text-theme-brand-primary px-2 py-1 rounded font-medium whitespace-nowrap">
+                        <div className="text-xs bg-theme-brand-primary/10 text-theme-brand-primary px-2 py-1 rounded font-medium whitespace-nowrap border border-theme-brand-primary/20">
                             {stats.cpu.cores} {t.cores}
                         </div>
                     </div>
                 </div>
 
                 {/* RAM Card */}
-                <div className="bg-theme-bg-secondary p-5 rounded-xl border border-theme-border-primary shadow-sm">
-                    <h3 className="font-bold text-theme-text-primary mb-4 flex items-center gap-2 text-xs uppercase tracking-wide">
-                        <MemoryStick size={16} className="text-purple-500" />
+                <div className="bg-theme-bg-secondary p-5 rounded-xl border border-theme-border-primary shadow-sm relative overflow-hidden group/card">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.03] to-transparent pointer-events-none" />
+                    <h3 className="font-bold text-theme-text-primary mb-4 flex items-center gap-2 text-xs uppercase tracking-wide relative z-10">
+                        <div className="relative">
+                            <MemoryStick size={16} className="text-purple-500" />
+                            <div className="absolute inset-0 bg-purple-500/20 blur-sm rounded-full animate-pulse duration-[2000ms] pointer-events-none" />
+                        </div>
                         {t.memoryRam}
                     </h3>
 
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start relative z-10">
                         <div>
                             <div className="text-2xl font-bold text-theme-text-primary">
                                 {formatBytes(stats.mem.total)}
                             </div>
                             <div className="flex items-center gap-2 text-xs text-theme-text-muted mt-1">
-                                <span className="bg-purple-500/10 text-purple-500 px-1.5 py-0.5 rounded font-mono">{stats.mem.type}</span>
+                                <span className="bg-purple-500/10 text-purple-500 px-1.5 py-0.5 rounded font-mono border border-purple-500/20">{stats.mem.type}</span>
                                 <span>{stats.mem.speed > 0 ? `${stats.mem.speed} MHz` : ''}</span>
                             </div>
                         </div>
@@ -198,7 +206,7 @@ export const SystemHealth: React.FC<SystemHealthProps> = ({ language, eggsActive
                                 {Array.from({ length: stats.mem.slotsTotal || 2 }).map((_, i) => (
                                     <div
                                         key={i}
-                                        className={`w-3 h-6 rounded-sm border ${i < (stats.mem.slotsUsed || 1) ? 'bg-purple-500 border-purple-600' : 'bg-theme-bg-tertiary border-theme-border-primary'}`}
+                                        className={`w-3 h-6 rounded-sm border transition-all duration-500 ${i < (stats.mem.slotsUsed || 1) ? 'bg-purple-500 border-purple-600 shadow-[0_0_8px_rgba(168,85,247,0.4)]' : 'bg-theme-bg-tertiary border-theme-border-primary'}`}
                                         title={i < (stats.mem.slotsUsed) ? t.occupied : t.free}
                                     />
                                 ))}
