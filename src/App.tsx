@@ -243,8 +243,32 @@ const App: React.FC = () => {
   const [ipRangePresets, setIpRangePresets] = useLocalStorage<IpRangePreset[]>('netmajik_ip_range_presets', []);
   const [assigningPresetId, setAssigningPresetId] = useState<string | null>(null);
 
+  const [appliedProfiles, setAppliedProfiles] = useLocalStorage<Record<string, string>>('netmajik_applied_profiles', {});
+
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS['en'];
-  const selectedInterface = interfaces.find(i => i.id === selectedInterfaceId);
+
+  // Derive currentProfileId for each interface dynamically
+  const mappedInterfaces = interfaces.map(iface => {
+    // 1. Try to find a static profile that matches the current IP exactly
+    const staticMatch = profiles.find(p => p.type === 'Static' && p.config?.ipAddress === iface.currentIp);
+    if (staticMatch) {
+      return { ...iface, currentProfileId: staticMatch.id };
+    }
+
+    // 2. If no static match, check the last applied profile from local storage
+    const lastAppliedId = appliedProfiles[iface.name];
+    if (lastAppliedId) {
+      const lastApplied = profiles.find(p => p.id === lastAppliedId);
+      if (lastApplied) {
+        if (lastApplied.type === 'DHCP' || lastApplied.config?.ipAddress === iface.currentIp) {
+          return { ...iface, currentProfileId: lastApplied.id };
+        }
+      }
+    }
+    return iface;
+  });
+
+  const selectedInterface = mappedInterfaces.find(i => i.id === selectedInterfaceId);
   const currentProfile = profiles.find(p => p.id === selectedInterface?.currentProfileId);
 
   const { isApplying, applyProfile, autoConnect, findFreeIpAndAssign, showAdminPrompt, setShowAdminPrompt } = useNetworkOps(selectedInterface, t);
@@ -320,16 +344,16 @@ const App: React.FC = () => {
       });
     }
 
-    if (!selectedInterfaceId && interfaces.length > 0) {
-      setSelectedInterfaceId(interfaces[0].id);
+    if (!selectedInterfaceId && mappedInterfaces.length > 0) {
+      setSelectedInterfaceId(mappedInterfaces[0].id);
     }
-  }, [interfaces]);
+  }, [mappedInterfaces]);
 
 
 
   const handleToggleIface = async (id: string, enable: boolean) => {
     if (window.electronAPI) {
-      const iface = interfaces.find(i => i.id === id);
+      const iface = mappedInterfaces.find(i => i.id === id);
       if (!iface) return;
       const res = await window.electronAPI.toggleInterface({ ifaceName: iface.name, enable });
       if (res?.success) {
@@ -350,6 +374,12 @@ const App: React.FC = () => {
     setScannerReferenceProfileId(profile.id);
     const res = await applyProfile(profile);
     if (res?.success) {
+      if (selectedInterface) {
+        setAppliedProfiles(prev => ({
+          ...prev,
+          [selectedInterface.name]: profile.id
+        }));
+      }
       success(res.message!);
       loadInterfaces(false);
     } else if (res?.message) {
@@ -805,13 +835,14 @@ const App: React.FC = () => {
               </button>
             </div>
             <div className="space-y-1">
-              {interfaces.length > 0 ? (
-                interfaces.map(iface => (
+              {mappedInterfaces.length > 0 ? (
+                mappedInterfaces.map(iface => (
                   <InterfaceCard
                     key={iface.id} iface={iface}
                     isSelected={iface.id === selectedInterfaceId}
                     onClick={handleInterfaceSelect} onToggle={handleToggleIface}
                     isToggling={isToggling === iface.id}
+                    profileName={profiles.find(p => p.id === iface.currentProfileId)?.name}
                   />
                 ))
               ) : (
@@ -1133,8 +1164,8 @@ const App: React.FC = () => {
           onSelectProfile={(id) => {
             const profile = profiles.find(p => p.id === id);
             if (profile) {
-              if (!selectedInterfaceId && interfaces.length > 0) {
-                setSelectedInterfaceId(interfaces[0].id);
+              if (!selectedInterfaceId && mappedInterfaces.length > 0) {
+                setSelectedInterfaceId(mappedInterfaces[0].id);
               }
               setIsCreating(false);
               setView('profiles');
@@ -1147,7 +1178,7 @@ const App: React.FC = () => {
           onSelectSnippet={(_id) => setView('clipboard')}
           onSelectCredential={(_id) => setView('credentials')}
           onSelectDevice={(profileId, _deviceId) => {
-            if (!selectedInterfaceId && interfaces.length > 0) setSelectedInterfaceId(interfaces[0].id);
+            if (!selectedInterfaceId && mappedInterfaces.length > 0) setSelectedInterfaceId(mappedInterfaces[0].id);
             setViewingInventoryProfileId(profileId);
             setView('profiles');
             setScannerReferenceProfileId(profileId);

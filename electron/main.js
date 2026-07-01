@@ -1645,9 +1645,9 @@ ipcMain.handle('find-free-ip-and-assign', async (event, { ifaceName, startIp, en
 
     const checkIp = (ip) => {
         return new Promise(resolve => {
-            exec(`ping -n 1 -w 250 ${ip}`, (err, stdout) => {
+            exec(`ping -n 1 -w 300 ${ip} & arp -a ${ip}`, (err, stdout) => {
                 const output = (stdout || '').toLowerCase();
-                const isTaken = output.includes('ttl=') || (!output.includes('unreachable') && !output.includes('timed out') && output.includes('reply from'));
+                const isTaken = output.includes('ttl=') || output.includes('dinámico') || output.includes('estático') || output.includes('dynamic') || output.includes('static');
                 resolve(isTaken);
             });
         });

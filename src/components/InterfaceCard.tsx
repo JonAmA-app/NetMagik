@@ -8,9 +8,10 @@ interface InterfaceCardProps {
     onClick: (id: string) => void;
     onToggle?: (id: string, enable: boolean) => void;
     isToggling?: boolean;
+    profileName?: string;
 }
 
-export const InterfaceCard: React.FC<InterfaceCardProps> = ({ iface, isSelected, onClick, onToggle, isToggling }) => {
+export const InterfaceCard: React.FC<InterfaceCardProps> = ({ iface, isSelected, onClick, onToggle, isToggling, profileName }) => {
     const isWifi = iface.name.toLowerCase().includes('wi-fi');
     const isDisabled = iface.status === 'Disabled';
 
@@ -64,7 +65,7 @@ export const InterfaceCard: React.FC<InterfaceCardProps> = ({ iface, isSelected,
                                 <div className="absolute -left-3 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
                             )}
                             <span className={`text-[11px] truncate font-mono tracking-tight transition-colors ${isSelected ? 'text-theme-text-secondary' : 'text-theme-text-muted'}`}>
-                                {isDisabled ? 'Offline' : iface.currentIp}
+                                {isDisabled ? 'Offline' : iface.currentIp} {profileName && !isDisabled ? `(${profileName})` : ''}
                             </span>
                         </div>
                         {!isDisabled && iface.allIps && iface.allIps.length > 1 && (

@@ -1,7 +1,7 @@
 {
   "name": "netmajik-desktop",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A modern network interface manager",
   "author": "JonAmA",
   "type": "module",

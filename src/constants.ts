@@ -2,7 +2,7 @@
 import { IpType, NetworkInterface, Profile, ClipboardSnippet, DeviceCredential } from './types';
 
 // Shared application version constant
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.6';
 export const DONATION_URL = 'https://donate.stripe.com/8x25kDae2grLgkZd914sE00-';
 
 export const INITIAL_INTERFACES: NetworkInterface[] = [];
@@ -148,6 +148,12 @@ const BASE_TRANSLATIONS = {
   password: 'Password',
   noCredentialsFound: 'No credentials found.',
   model: 'Model',
+  launcherTriggerLabel: 'Drawer Trigger',
+  launcherTriggerHover: 'Hover Edge',
+  ipRangePresets: 'IP Range Buttons',
+  addRangePreset: 'Add Range Button',
+  presetLabel: 'Button Label',
+  presetMask: 'Subnet Mask',
   deviceType: 'Device Type',
   saveDevice: 'Save Device',
   signal: 'Signal Strength',
@@ -859,7 +865,12 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
   en: BASE_TRANSLATIONS,
   es: {
     ...BASE_TRANSLATIONS,
-    ...BASE_TRANSLATIONS,
+    launcherTriggerLabel: 'Disparador del panel',
+    launcherTriggerHover: 'Borde al pasar el ratón',
+    ipRangePresets: 'Botones de rango IP',
+    addRangePreset: 'Añadir botón de rango',
+    presetLabel: 'Etiqueta del botón',
+    presetMask: 'Máscara de subred',
     action: 'Acción',
     actions: 'Acciones',
     active: 'Activo',
@@ -1648,6 +1659,12 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
   // ─── PORTUGUÊS ────────────────────────────────────────────────────────────
   pt: {
     ...BASE_TRANSLATIONS,
+    launcherTriggerLabel: 'Gatilho da Gaveta',
+    launcherTriggerHover: 'Borda ao passar o mouse',
+    ipRangePresets: 'Botões de intervalo IP',
+    addRangePreset: 'Adicionar botão de intervalo',
+    presetLabel: 'Rótulo do botão',
+    presetMask: 'Máscara de sub-rede',
     interfaces: 'Interfaces',
     tools: 'Ferramentas',
     toolsManager: 'Gestor de Ferramentas',
@@ -2437,6 +2454,12 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
   // ─── DEUTSCH ──────────────────────────────────────────────────────────────
   de: {
     ...BASE_TRANSLATIONS,
+    launcherTriggerLabel: 'Schubladen-Auslöser',
+    launcherTriggerHover: 'Rand beim Darüberfahren',
+    ipRangePresets: 'IP-Bereichstasten',
+    addRangePreset: 'Bereichstaste hinzufügen',
+    presetLabel: 'Tastenbeschriftung',
+    presetMask: 'Subnetzmaske',
     interfaces: 'Schnittstellen',
     tools: 'Werkzeuge',
     toolsManager: 'Werkzeug-Manager',
@@ -3225,6 +3248,12 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
   // ─── FRANÇAIS ─────────────────────────────────────────────────────────────
   fr: {
     ...BASE_TRANSLATIONS,
+    launcherTriggerLabel: 'Déclencheur du tiroir',
+    launcherTriggerHover: 'Bord au survol',
+    ipRangePresets: 'Boutons de plage IP',
+    addRangePreset: 'Ajouter un bouton de plage',
+    presetLabel: 'Étiquette du bouton',
+    presetMask: 'Masque de sous-réseau',
     interfaces: 'Interfaces',
     tools: 'Outils',
     toolsManager: 'Gestionnaire d\'outils',
@@ -4014,6 +4043,12 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
   // ─── 中文 (简体) ──────────────────────────────────────────────────────────
   zh: {
     ...BASE_TRANSLATIONS,
+    launcherTriggerLabel: '抽屉触发器',
+    launcherTriggerHover: '悬停边缘',
+    ipRangePresets: 'IP 范围按钮',
+    addRangePreset: '添加范围按钮',
+    presetLabel: '按钮标签',
+    presetMask: '子网掩码',
     interfaces: '网络接口',
     tools: '工具',
     toolsManager: '工具管理器',
@@ -4803,6 +4838,12 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
   // ─── 日本語 (Japanese) ──────────────────────────────────────────────────────────
   ja: {
     ...BASE_TRANSLATIONS,
+    launcherTriggerLabel: 'ドロワートリガー',
+    launcherTriggerHover: 'ホバーエッジ',
+    ipRangePresets: 'IP範囲ボタン',
+    addRangePreset: '範囲ボタンを追加',
+    presetLabel: 'ボタンラベル',
+    presetMask: 'サブネットマスク',
     interfaces: 'インターフェース',
     tools: 'ツール',
     toolsManager: 'ツールマネージャー',
