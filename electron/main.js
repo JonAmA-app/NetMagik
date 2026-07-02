@@ -794,7 +794,7 @@ ipcMain.handle('get-windows-interfaces', async () => {
             'tailscale', 'npcap', 'bluetooth'
         ];
 
-        exec('netsh interface show interface', (err, stdout) => {
+        exec('chcp 65001 > nul && netsh interface show interface', { encoding: 'utf8' }, (err, stdout) => {
             if (err) {
                 resolve([]);
                 return;
@@ -1527,9 +1527,9 @@ ipcMain.handle('execute-network-command', async (event, { command, params }) => 
         }
         else return reject(new Error('Command not allowed'));
 
-        // Fix encoding on Spanish Windows (UTF-8)
+        // Fix encoding on Windows (UTF-8)
         const fullCmd = process.platform === 'win32'
-            ? `powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ${cmd}"`
+            ? `chcp 65001 > nul && ${cmd}`
             : cmd;
 
         exec(fullCmd, { encoding: 'utf8' }, (err, stdout) => {

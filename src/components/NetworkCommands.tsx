@@ -203,7 +203,7 @@ export const NetworkCommands: React.FC<NetworkCommandsProps> = ({ iface, languag
                             <div className="flex items-center gap-2 text-xs font-bold text-theme-text-muted uppercase tracking-widest">
                                 <FileText size={14} /> {t.output || "Output"}: {commands.find(c => c.id === result.id)?.title}
                             </div>
-                            <button onClick={() => setShowOutput(false)} className="text-[10px] font-bold text-theme-text-muted hover:text-theme-text-primary uppercase tracking-tighter">{t.closeOutput || "Close Output"}</button>
+                            <button onClick={() => { setShowOutput(false); setResult(null); }} className="text-[10px] font-bold text-theme-text-muted hover:text-theme-text-primary uppercase tracking-tighter">{t.closeOutput || "Close Output"}</button>
                         </div>
                         <div className="bg-theme-bg-tertiary rounded-xl p-4 border border-theme-border-primary shadow-inner max-h-[300px] overflow-auto custom-scrollbar">
                             <pre className="text-[11px] font-mono text-theme-text-secondary whitespace-pre-wrap leading-relaxed">{result.output}</pre>
@@ -261,7 +261,7 @@ export const NetworkCommands: React.FC<NetworkCommandsProps> = ({ iface, languag
                                     {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
                                 </button>
                                 <button
-                                    onClick={() => { setShowFloatingOutput(false); setIsMaximized(false); }}
+                                    onClick={() => { setShowFloatingOutput(false); setIsMaximized(false); setResult(null); }}
                                     className="p-2 text-theme-text-muted hover:text-rose-500 hover:bg-theme-bg-hover rounded-lg transition-all"
                                 >
                                     <X size={18} />
@@ -287,7 +287,7 @@ export const NetworkCommands: React.FC<NetworkCommandsProps> = ({ iface, languag
                                 <FileText size={16} /> {t.copyLink || 'Copy'}
                             </button>
                             <button
-                                onClick={() => { setShowFloatingOutput(false); setIsMaximized(false); }}
+                                onClick={() => { setShowFloatingOutput(false); setIsMaximized(false); setResult(null); }}
                                 className="px-6 py-2 bg-theme-brand-primary hover:bg-theme-brand-hover text-white rounded-xl text-sm font-bold shadow-lg shadow-theme-brand-primary/20 transition-all"
                             >
                                 {t.close || 'Close'}

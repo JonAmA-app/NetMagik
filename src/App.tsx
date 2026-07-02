@@ -334,13 +334,13 @@ const App: React.FC = () => {
     const allToolIds = ['profiles', 'clipboard', 'connectivity', 'scanner', 'port-scanner', 'internet', 'credentials', 'system', 'subnet', 'commands', 'programs'];
 
     const missingInOrder = allToolIds.filter(id => !settings.toolOrder.includes(id));
-    const missingInFavs = allToolIds.filter(id => !settings.favoriteTools.includes(id));
+    const hasNoFavs = !settings.favoriteTools;
 
-    if (missingInOrder.length > 0 || missingInFavs.length > 0) {
+    if (missingInOrder.length > 0 || hasNoFavs) {
       setSettings({
         ...settings,
         toolOrder: [...settings.toolOrder, ...missingInOrder],
-        favoriteTools: [...settings.favoriteTools, ...missingInFavs]
+        favoriteTools: hasNoFavs ? allToolIds : settings.favoriteTools
       });
     }
 
