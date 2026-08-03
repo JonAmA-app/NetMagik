@@ -78,7 +78,7 @@
         "ja-JP"
       ],
       "multiLanguageInstaller": true,
-      "license": "public/eula.txt"
+      "license": "public/eula.rtf"
     },
     "appx": {
       "applicationId": "NetMajik",

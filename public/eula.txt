@@ -1,57 +1,93 @@
-CONTRATO DE LICENCIA DE USUARIO FINAL (CLUF) - NETMAJIK
-END USER LICENSE AGREEMENT (EULA) - NETMAJIK
+END USER LICENSE AGREEMENT (EULA) - NETMAJIK v1.0.8
 
-═══════════════════════════════════════════════════
-ESPAÑOL
-═══════════════════════════════════════════════════
+Copyright (c) 2024-2026 JonAmA. All rights reserved.
 
-LEA ATENTAMENTE ESTE CONTRATO ANTES DE INSTALAR O USAR NETMAJIK ("LA APLICACIÓN").
-AL INSTALAR O USAR LA APLICACIÓN, ACEPTA LOS TÉRMINOS DE ESTE ACUERDO.
+-------------------------------------------------------------------
+PLEASE READ THIS AGREEMENT CAREFULLY BEFORE INSTALLING NETMAJIK.
+BY INSTALLING OR USING THIS SOFTWARE, YOU AGREE TO BE BOUND BY
+THE TERMS OF THIS LICENSE AGREEMENT.
+-------------------------------------------------------------------
 
-1. CONCESIÓN DE LICENCIA
-El autor de NETMAJIK le otorga una licencia personal, no exclusiva e intransferible para instalar y usar la Aplicación con fines personales o comerciales, de acuerdo con los términos de este contrato.
+1. LICENSE GRANT
+
+The author of NETMAJIK grants you a personal, non-exclusive and
+non-transferable license to install and use the Application for
+personal or commercial purposes, in accordance with the terms of
+this agreement.
+
+2. RESTRICTIONS
+
+You may not:
+  a) Modify, translate, reverse engineer, decompile, or disassemble
+     the Application.
+  b) Rent, lease, sublicense, or transfer the Application to any
+     third party.
+  c) Remove, alter, or obscure any proprietary or copyright notices.
+
+3. DISCLAIMER OF WARRANTY
+
+THE APPLICATION IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-
+INFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE APPLICATION OR THE USE OF THE APPLICATION.
+
+4. PRIVACY AND DATA
+
+NETMAJIK operates entirely on your local device. No personal data
+is collected or transmitted to external servers. All configuration
+and data is stored locally.
+
+5. TERMINATION
+
+This license is effective until terminated. It will terminate
+automatically if you fail to comply with any of its terms. Upon
+termination, you must stop using the Application and destroy all
+copies in your possession.
+
+6. GOVERNING LAW
+
+This agreement is governed by applicable local laws.
+
+-------------------------------------------------------------------
+ACUERDO DE LICENCIA DE USUARIO FINAL (EULA) - NETMAJIK v1.0.8
+
+Copyright (c) 2024-2026 JonAmA. Todos los derechos reservados.
+
+LEA ESTE ACUERDO ANTES DE INSTALAR NETMAJIK.
+AL INSTALAR O USAR ESTE SOFTWARE, ACEPTA LOS TERMINOS DE ESTE
+ACUERDO DE LICENCIA.
+
+1. CONCESION DE LICENCIA
+El autor de NETMAJIK le otorga una licencia personal, no exclusiva
+e intransferible para instalar y usar la Aplicacion con fines
+personales o comerciales, de acuerdo con los terminos de este
+contrato.
 
 2. RESTRICCIONES
 Queda prohibido:
-a) Modificar, traducir, aplicar ingeniería inversa, descompilar o desensamblar la Aplicación.
-b) Alquilar, arrendar, sublicenciar o ceder la Aplicación a terceros.
-c) Eliminar, alterar u ocultar cualquier aviso de propiedad o copyright.
+  a) Modificar, traducir, aplicar ingenieria inversa, descompilar
+     o desensamblar la Aplicacion.
+  b) Alquilar, arrendar, sublicenciar o ceder la Aplicacion a
+     terceros.
+  c) Eliminar, alterar u ocultar cualquier aviso de copyright.
 
-3. EXENCIÓN DE RESPONSABILIDAD
-La Aplicación se proporciona "TAL CUAL", sin garantía de ningún tipo, expresa o implícita. En ningún caso el autor será responsable de reclamaciones, daños u otras responsabilidades derivadas del uso de la Aplicación.
+3. EXENCION DE RESPONSABILIDAD
+La Aplicacion se proporciona "TAL CUAL", sin garantia de ningun
+tipo. En ningun caso el autor sera responsable de reclamaciones,
+danos u otras responsabilidades derivadas del uso de la Aplicacion.
 
 4. PRIVACIDAD Y DATOS
-NETMAJIK opera y almacena su configuración localmente en su dispositivo. No se recopilan ni transmiten datos personales a servidores externos.
+NETMAJIK opera y almacena su configuracion localmente en su
+dispositivo. No se recopilan ni transmiten datos personales.
 
-5. TERMINACIÓN
-Esta licencia se rescindirá automáticamente si incumple cualquiera de sus términos. Al terminar, deberá dejar de usar la Aplicación y eliminar todas las copias.
+5. TERMINACION
+Esta licencia se rescindira automaticamente si incumple sus
+terminos. Al terminar, debera dejar de usar la Aplicacion y
+eliminar todas las copias.
 
-6. LEY APLICABLE
-Este acuerdo se rige por las leyes del lugar de residencia del autor.
-
-═══════════════════════════════════════════════════
-ENGLISH
-═══════════════════════════════════════════════════
-
-PLEASE READ THIS END USER LICENSE AGREEMENT ("EULA") CAREFULLY BEFORE INSTALLING OR USING THE NETMAJIK APPLICATION ("THE APPLICATION"). BY INSTALLING OR USING THE APPLICATION, YOU AGREE TO BE BOUND BY THE TERMS OF THIS EULA.
-
-1. LICENSE GRANT
-The author of NETMAJIK grants you a personal, non-exclusive, and non-transferable license to install and use the Application for personal or commercial purposes, in accordance with the terms of this agreement.
-
-2. RESTRICTIONS
-You may not:
-a) Modify, translate, reverse engineer, decompile, or disassemble the Application.
-b) Rent, lease, sublicense, or temporarily transfer the Application to third parties.
-c) Remove, alter, or obscure any proprietary or copyright notices.
-
-3. DISCLAIMER OF LIABILITY
-The Application is provided "AS IS", without warranty of any kind, express or implied. In no event shall the author be liable for any claim, damages or other liability arising from the use of the Application.
-
-4. PRIVACY AND DATA COLLECTION
-NETMAJIK operates and stores its configuration locally on your device. No personal data is collected or transmitted to external servers.
-
-5. TERMINATION
-This license will terminate automatically if you breach any of its terms. Upon termination, you must stop using the Application and destroy all copies.
-
-6. GOVERNING LAW
-This agreement is governed by the laws of the author's place of residence.
+-------------------------------------------------------------------
+BY CLICKING "I AGREE" / AL HACER CLIC EN "ACEPTO", YOU CONFIRM
+THAT YOU HAVE READ AND ACCEPT THIS LICENSE AGREEMENT.
+-------------------------------------------------------------------
