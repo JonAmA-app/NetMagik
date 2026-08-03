@@ -2,7 +2,7 @@
 import { IpType, NetworkInterface, Profile, ClipboardSnippet, DeviceCredential } from './types';
 
 // Shared application version constant
-export const APP_VERSION = '1.0.7';
+export const APP_VERSION = '1.0.8';
 export const DONATION_URL = 'https://donate.stripe.com/8x25kDae2grLgkZd914sE00-';
 
 export const INITIAL_INTERFACES: NetworkInterface[] = [];
@@ -865,6 +865,8 @@ const BASE_TRANSLATIONS = {
   resetRange: 'Reset Range',
   wakeOnLan: 'Wake-on-LAN',
   securityAudit: 'Security Audit (NSE)',
+  winShortcuts: 'Windows Features',
+  winShortcutsDesc: 'System maintenance, admin consoles, control panels, and custom shortcuts.',
 };
 
 export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
@@ -1666,6 +1668,8 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
     dontKnowHowToFix: '¿No sabes cómo resolverlo?',
     copyAiPrompt: 'Copiar Prompt IA',
     noRelevantErrors: 'No hay errores relevantes. (Todos los reportes actuales fueron ignorados de forma segura).',
+    winShortcuts: 'Funciones de Windows',
+    winShortcutsDesc: 'Mantenimiento del sistema, consolas administrativas, paneles de control y accesos directos personalizados.',
   },
 
   // ─── PORTUGUÊS ────────────────────────────────────────────────────────────
@@ -2467,6 +2471,8 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
     dontKnowHowToFix: 'Não sabe como corrigir?',
     copyAiPrompt: 'Copiar Prompt da IA',
     noRelevantErrors: 'Nenhum erro relevante encontrado. (Todos os relatórios atuais foram ignorados com segurança).',
+    winShortcuts: 'Recursos do Windows',
+    winShortcutsDesc: 'Manutenção do sistema, consoles administrativos, painéis de controle e atalhos personalizados.',
   },
 
   // ─── DEUTSCH ──────────────────────────────────────────────────────────────
@@ -3267,6 +3273,8 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
     dontKnowHowToFix: 'Weißt du nicht, wie du das beheben kannst?',
     copyAiPrompt: 'KI-Prompt kopieren',
     noRelevantErrors: 'Keine relevanten Fehler gefunden. (Alle aktuellen Berichte wurden sicher ignoriert).',
+    winShortcuts: 'Windows-Funktionen',
+    winShortcutsDesc: 'Systemwartung, Verwaltungskonsolen, Systemsteuerungen und benutzerdefinierte Verknüpfungen.',
   },
 
   // ─── FRANÇAIS ─────────────────────────────────────────────────────────────
@@ -4068,6 +4076,8 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
     dontKnowHowToFix: 'Vous ne savez pas comment réparer ?',
     copyAiPrompt: 'Copier Prompt IA',
     noRelevantErrors: 'Aucun erreur pertinente trouvée. (Tous les rapports actuels ont été ignorés en toute sécurité).',
+    winShortcuts: 'Fonctionnalités Windows',
+    winShortcutsDesc: 'Maintenance du système, consoles d’administration, panneaux de configuration et raccourcis personnalisés.',
   },
 
   // ─── 中文 (简体) ──────────────────────────────────────────────────────────
@@ -4869,6 +4879,8 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
     dontKnowHowToFix: '不知道如何修复？',
     copyAiPrompt: '复制 AI 提示',
     noRelevantErrors: '未找到相关错误。(所有当前报告已安全忽略)。',
+    winShortcuts: 'Windows 功能',
+    winShortcutsDesc: '系统维护、管理控制台、控制面板和自定义快捷方式。',
   },
 
   // ─── 日本語 (Japanese) ──────────────────────────────────────────────────────────
@@ -5669,5 +5681,7 @@ export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
     dontKnowHowToFix: '修正方法が分かりませんか？',
     copyAiPrompt: 'AI プロンプトをコピー',
     noRelevantErrors: '関連するエラーは見つかりませんでした。(現在のレポートはすべて安全に無視されました)。',
+    winShortcuts: 'Windows 機能',
+    winShortcutsDesc: 'システムメンテナンス、管理コンソール、コントロールパネル、カスタムショートカット。',
   },
 };

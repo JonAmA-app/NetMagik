@@ -77,6 +77,10 @@ export const Traceroute: React.FC<TracerouteProps> = ({ language }) => {
         setIsTracing(true);
         setHops([]);
 
+        if (target.trim() === '8.8.8.8') {
+            window.dispatchEvent(new CustomEvent('easter-egg', { detail: { id: 'egg7', name: t.eggPingName } }));
+        }
+
         if (window.electronAPI) {
             await window.electronAPI.runTraceroute({ target });
             setIsTracing(false);

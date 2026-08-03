@@ -76,7 +76,7 @@ if (!gotTheLock) {
         powerMonitor.on('unlock-screen', () => {
             if (mainWindow) mainWindow.webContents.send('system-resume');
         });
-        setupKeywordHook();
+        // (keyword hook removed)
     });
 }
 
@@ -188,12 +188,14 @@ function createWindow() {
 
     mainWindow.removeMenu();
 
-    const isDev = !app.isPackaged;
-
-    if (isDev) {
-        mainWindow.loadURL('http://localhost:5173');
+    // Load strategy: if dist/index.html exists (npm start or packaged), load it.
+    // Only fall back to Vite dev server if no dist build is present.
+    const distIndex = path.join(__dirname, '../dist/index.html');
+    if (fs.existsSync(distIndex)) {
+        mainWindow.loadFile(distIndex);
     } else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+        // No dist build — must be running with `electron .` alongside a Vite dev server
+        mainWindow.loadURL('http://localhost:5173');
     }
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -260,11 +262,11 @@ function createNotificationWindow() {
     // Make it truly transparent and click-through as needed (mostly on Windows)
     notificationWindow.setIgnoreMouseEvents(true, { forward: true });
 
-    const isDev = !app.isPackaged;
-    if (isDev) {
-        notificationWindow.loadURL('http://localhost:5173/?window=notification');
+    const distIdx = path.join(__dirname, '../dist/index.html');
+    if (fs.existsSync(distIdx)) {
+        notificationWindow.loadFile(distIdx, { query: { window: 'notification' } });
     } else {
-        notificationWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { window: 'notification' } });
+        notificationWindow.loadURL('http://localhost:5173/?window=notification');
     }
 
     notificationWindow.on('closed', () => {
@@ -578,6 +580,63 @@ ipcMain.handle('launch-external-app', async (event, appPath) => {
         return { success: false, error: e.message };
     }
 });
+
+ipcMain.handle('launch-win-shortcut', async (event, targetCmd) => {
+    if (!targetCmd) return { success: false, error: 'Empty command' };
+
+    // Handle ms-settings: and other URI schemes via shell.openExternal
+    if (/^[a-z][a-z0-9+.-]+:/i.test(targetCmd) && !targetCmd.endsWith('.cpl') && !targetCmd.endsWith('.msc') && !targetCmd.endsWith('.exe')) {
+        try {
+            await shell.openExternal(targetCmd);
+            return { success: true };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    return new Promise((resolve) => {
+        // Split command into executable and arguments
+        // e.g. "msdt.exe /id NetworkDiagnosticsNetworkAdapter" → exe="msdt.exe", args="/id NetworkDiagnosticsNetworkAdapter"
+        // e.g. "control.exe /name Microsoft.NetworkAndSharingCenter" → exe="control.exe", args="/name Microsoft.NetworkAndSharingCenter"
+        const parts = targetCmd.trim().split(/\s+/);
+        const exe = parts[0];
+        const args = parts.slice(1).join(' ');
+
+        let cmdToRun;
+
+        if (exe.endsWith('.cpl')) {
+            // Control Panel applets: use control.exe
+            cmdToRun = args ? `control "${exe}" ${args}` : `control "${exe}"`;
+        } else if (exe.endsWith('.msc')) {
+            // MMC snap-ins
+            cmdToRun = args ? `mmc "${exe}" ${args}` : `start "" "${exe}"`;
+        } else if (exe.includes('\\') || exe.includes('/')) {
+            // Full path executable — wrap exe in quotes, append args unquoted
+            cmdToRun = args ? `"${exe}" ${args}` : `"${exe}"`;
+        } else {
+            // Simple executable name (taskmgr, msdt.exe, control.exe, powershell, etc.)
+            // Use start "" to launch without holding the console; keep args outside quotes
+            cmdToRun = args ? `start "" "${exe}" ${args}` : `start "" "${exe}"`;
+        }
+
+        exec(cmdToRun, { windowsHide: false }, (error) => {
+            if (error) {
+                // Fallback: try shell.openPath for plain paths without arguments
+                if (!args) {
+                    shell.openPath(targetCmd).then((errStr) => {
+                        if (errStr) resolve({ success: false, error: errStr });
+                        else resolve({ success: true });
+                    }).catch(e => resolve({ success: false, error: e.message }));
+                } else {
+                    resolve({ success: false, error: error.message });
+                }
+            } else {
+                resolve({ success: true });
+            }
+        });
+    });
+});
+
 
 ipcMain.handle('relaunch-elevated', async () => {
     if (process.platform === 'win32') {
@@ -1642,6 +1701,17 @@ ipcMain.handle('find-free-ip-and-assign', async (event, { ifaceName, startIp, en
     const start = ipToInt(startIp);
     const end = ipToInt(endIp);
     if (end < start || (end - start) > 500) return { success: false, message: 'Invalid or too large range (max 500 IPs)' };
+
+    // Temporarily bind interface to an IP in the target subnet with a broad mask (e.g. 255.0.0.0 or 255.255.0.0)
+    // to ensure Windows ARP engine sends packets on this physical adapter
+    const tempMask = startIp.startsWith('10.') ? '255.0.0.0' : (startIp.startsWith('172.') ? '255.255.0.0' : '255.255.0.0');
+    const tempCmd = `netsh interface ip set address "${ifaceName}" static ${startIp} ${tempMask}`;
+    
+    await new Promise((res) => {
+        exec(tempCmd, () => res());
+    });
+    // Give network stack a short moment to initialize the interface binding
+    await new Promise(r => setTimeout(r, 1000));
 
     const checkIp = (ip) => {
         return new Promise(resolve => {

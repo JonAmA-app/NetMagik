@@ -276,14 +276,6 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
                 window.dispatchEvent(new CustomEvent('easter-egg', { detail: { id: 'localhost', name: t.eggLocalhostName } }));
                 return { status: 'active', latency: 1, msg: t.eggLocalhostMsg };
             }
-            if (ip === '4.1.8.0') {
-                window.dispatchEvent(new CustomEvent('easter-egg', { detail: { id: 'teapot', name: t.eggTeapotName } }));
-                return { status: 'timeout', latency: 0, msg: t.eggTeapotMsg };
-            }
-            if (ip === '1.3.3.7') {
-                window.dispatchEvent(new CustomEvent('easter-egg', { detail: { id: 'egg7', name: t.eggPingName } }));
-                return { status: 'active', latency: 1337, msg: t.eggEliteMsg };
-            }
             // ------------------------------------------------ //
 
             if (window.electronAPI) {

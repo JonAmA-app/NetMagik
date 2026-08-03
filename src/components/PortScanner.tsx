@@ -107,6 +107,9 @@ export const PortScanner: React.FC<PortScannerProps> = ({ language, initialIp })
             for (let i = 0; i < ports.length; i++) {
                 if (stopScanningRef.current) break;
                 const port = ports[i];
+                if (port === 418) {
+                    window.dispatchEvent(new CustomEvent('easter-egg', { detail: { id: 'teapot', name: t.eggTeapotName } }));
+                }
                 setCurrentScanningPort(port);
                 setScanProgress(Math.round(((i + 1) / ports.length) * 100));
                 

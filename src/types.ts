@@ -246,6 +246,7 @@ declare global {
       checkDiskErrors: (drive: string) => Promise<any>;
       selectExecutableFile: () => Promise<any>;
       launchExternalApp: (appPath: string) => Promise<any>;
+      launchWinShortcut: (cmd: string) => Promise<any>;
       fetchOuiDatabase: () => Promise<any>;
       manualSnippetAction: (payload: { autoPaste: boolean, value: string }) => void;
       onNavigateTo: (callback: (target: string) => void) => void;

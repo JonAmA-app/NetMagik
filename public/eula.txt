@@ -1,4 +1,37 @@
-END USER LICENSE AGREEMENT (EULA) FOR NETMAJIK
+CONTRATO DE LICENCIA DE USUARIO FINAL (CLUF) - NETMAJIK
+END USER LICENSE AGREEMENT (EULA) - NETMAJIK
+
+═══════════════════════════════════════════════════
+ESPAÑOL
+═══════════════════════════════════════════════════
+
+LEA ATENTAMENTE ESTE CONTRATO ANTES DE INSTALAR O USAR NETMAJIK ("LA APLICACIÓN").
+AL INSTALAR O USAR LA APLICACIÓN, ACEPTA LOS TÉRMINOS DE ESTE ACUERDO.
+
+1. CONCESIÓN DE LICENCIA
+El autor de NETMAJIK le otorga una licencia personal, no exclusiva e intransferible para instalar y usar la Aplicación con fines personales o comerciales, de acuerdo con los términos de este contrato.
+
+2. RESTRICCIONES
+Queda prohibido:
+a) Modificar, traducir, aplicar ingeniería inversa, descompilar o desensamblar la Aplicación.
+b) Alquilar, arrendar, sublicenciar o ceder la Aplicación a terceros.
+c) Eliminar, alterar u ocultar cualquier aviso de propiedad o copyright.
+
+3. EXENCIÓN DE RESPONSABILIDAD
+La Aplicación se proporciona "TAL CUAL", sin garantía de ningún tipo, expresa o implícita. En ningún caso el autor será responsable de reclamaciones, daños u otras responsabilidades derivadas del uso de la Aplicación.
+
+4. PRIVACIDAD Y DATOS
+NETMAJIK opera y almacena su configuración localmente en su dispositivo. No se recopilan ni transmiten datos personales a servidores externos.
+
+5. TERMINACIÓN
+Esta licencia se rescindirá automáticamente si incumple cualquiera de sus términos. Al terminar, deberá dejar de usar la Aplicación y eliminar todas las copias.
+
+6. LEY APLICABLE
+Este acuerdo se rige por las leyes del lugar de residencia del autor.
+
+═══════════════════════════════════════════════════
+ENGLISH
+═══════════════════════════════════════════════════
 
 PLEASE READ THIS END USER LICENSE AGREEMENT ("EULA") CAREFULLY BEFORE INSTALLING OR USING THE NETMAJIK APPLICATION ("THE APPLICATION"). BY INSTALLING OR USING THE APPLICATION, YOU AGREE TO BE BOUND BY THE TERMS OF THIS EULA.
 
@@ -12,12 +45,13 @@ b) Rent, lease, sublicense, or temporarily transfer the Application to third par
 c) Remove, alter, or obscure any proprietary or copyright notices.
 
 3. DISCLAIMER OF LIABILITY
-The Application is provided "AS IS", without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose and non-infringement. In no event shall the author be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from or in connection with the Application or the use or other dealings in the Application.
+The Application is provided "AS IS", without warranty of any kind, express or implied. In no event shall the author be liable for any claim, damages or other liability arising from the use of the Application.
 
 4. PRIVACY AND DATA COLLECTION
-NETMAJIK operates and stores its configuration locally on your device.
+NETMAJIK operates and stores its configuration locally on your device. No personal data is collected or transmitted to external servers.
 
 5. TERMINATION
-This license is effective until terminated by you. You may terminate it at any time by uninstalling the Application and destroying all copies in your possession or control. This license will also terminate automatically if you fail to comply with any term or condition of this agreement.
+This license will terminate automatically if you breach any of its terms. Upon termination, you must stop using the Application and destroy all copies.
 
-BY INSTALLING THE SOFTWARE, YOU ACKNOWLEDGE THAT YOU HAVE READ THIS AGREEMENT, UNDERSTAND IT, AND AGREE TO BE BOUND BY ITS TERMS AND CONDITIONS.
+6. GOVERNING LAW
+This agreement is governed by the laws of the author's place of residence.

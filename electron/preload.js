@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkDiskErrors: (drive) => ipcRenderer.invoke('check-disk-errors', drive),
     selectExecutableFile: () => ipcRenderer.invoke('select-executable-file'),
     launchExternalApp: (appPath) => ipcRenderer.invoke('launch-external-app', appPath),
+    launchWinShortcut: (cmd) => ipcRenderer.invoke('launch-win-shortcut', cmd),
     fetchOuiDatabase: () => ipcRenderer.invoke('fetch-oui-database'),
     
     // Notificaciones

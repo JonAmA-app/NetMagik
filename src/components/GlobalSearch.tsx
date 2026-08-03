@@ -64,8 +64,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
         const searchTerm = query.toLowerCase();
 
-        // Easter Egg: Follow the white rabbit
-        if (searchTerm === 'neo' || searchTerm === 'trinity' || searchTerm === 'morpheus') {
+        // Easter Egg: Follow the white rabbit / Matrix
+        if (searchTerm === 'matrix' || searchTerm === 'neo' || searchTerm === 'trinity' || searchTerm === 'morpheus') {
             window.dispatchEvent(new CustomEvent('easter-egg', { detail: { id: 'matrix', name: 'Sigue al conejo blanco' } }));
             window.document.documentElement.setAttribute('data-theme', 'matrix');
             // Allow state to persist on reload
@@ -73,12 +73,6 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
                 ...JSON.parse(localStorage.getItem('NetMajik_settings') || '{}'),
                 theme: 'matrix'
             }));
-        }
-
-        // Easter Egg: Rickroll
-        if (searchTerm === 'never gonna give you up' || searchTerm === 'rickroll') {
-            window.dispatchEvent(new CustomEvent('easter-egg', { detail: { id: 'egg8', name: 'Rickroll' } }));
-            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
         }
 
         const allResults: SearchResult[] = [];

@@ -1,12 +1,13 @@
 {
   "name": "netmajik-desktop",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A modern network interface manager",
   "author": "JonAmA",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
+    "start": "npm run build && electron .",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",

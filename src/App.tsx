@@ -4,7 +4,7 @@ import {
   Plus, Settings, AlertTriangle, Monitor, Wifi, Activity,
   Clipboard as ClipboardIcon, Radar, Globe, KeyRound,
   Shield, HelpCircle, RefreshCw, Zap, Calculator,
-  LayoutGrid, Network, Terminal, Heart, Search, Package, Layers
+  LayoutGrid, Network, Heart, Search, Package, Layers, Sliders
 } from 'lucide-react';
 
 import {
@@ -31,7 +31,6 @@ import { HelpGuide } from './components/HelpGuide';
 import { SystemHealth } from './components/SystemHealth';
 import { SubnetCalculator } from './components/SubnetCalculator';
 import { ToolsManager } from './components/ToolsManager';
-import { NetworkCommands } from './components/NetworkCommands';
 import { PortScanner } from './components/PortScanner';
 import { ExternalAppLauncher } from './components/ExternalAppLauncher';
 import { InstalledPrograms } from './components/InstalledPrograms';
@@ -41,6 +40,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { GlobalSearch } from './components/GlobalSearch';
 import { InventoryManager } from './components/InventoryManager';
 import { IpRangeButtons } from './components/IpRangeButtons';
+import { WindowsShortcuts } from './components/WindowsShortcuts';
 import { encryptData, decryptData } from './utils';
 import { useInterfaces } from './hooks/useInterfaces';
 import { useNetworkOps } from './hooks/useNetworkOps';
@@ -238,7 +238,7 @@ const App: React.FC = () => {
   }, []);
 
   const [quickIp, setQuickIp] = useState('');
-  const [quickMask, setQuickMask] = useState('');
+  const [quickMask, setQuickMask] = useState('255.255.255.0');
   const [quickGateway, setQuickGateway] = useState('');
   const [ipRangePresets, setIpRangePresets] = useLocalStorage<IpRangePreset[]>('netmajik_ip_range_presets', []);
   const [assigningPresetId, setAssigningPresetId] = useState<string | null>(null);
@@ -725,7 +725,7 @@ const App: React.FC = () => {
     { id: 'credentials', label: t.credentialLibrary, icon: <KeyRound size={18} />, colorClass: "text-amber-500" },
     { id: 'system', label: t.systemHealth, icon: <Activity size={18} />, colorClass: "text-rose-500" },
     { id: 'system-events', label: t.systemEvents || "Errores de PC", icon: <AlertTriangle size={18} />, colorClass: "text-red-600" },
-    { id: 'commands', label: t.commands, icon: <Terminal size={18} />, colorClass: "text-slate-500" },
+    { id: 'win-shortcuts', label: (t as any).winShortcuts || "Funciones de Windows", icon: <Sliders size={18} />, colorClass: "text-blue-500" },
     { id: 'subnet', label: t.subnetCalculator, icon: <Calculator size={18} />, colorClass: "text-pink-500" },
     { id: 'programs', label: t.programs, icon: <Package size={18} />, colorClass: "text-emerald-600" }
   ];
@@ -978,6 +978,7 @@ const App: React.FC = () => {
                                   <input
                                     value={quickIp}
                                     onChange={(e) => setQuickIp(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && quickIp && !isApplying) handleQuickApply(); }}
                                     className="w-full bg-theme-bg-tertiary border border-theme-border-primary rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-theme-brand-primary/50 focus:border-theme-brand-primary outline-none transition-all text-theme-text-primary placeholder:text-theme-text-muted/40"
                                     placeholder="192.168.1.55"
                                   />
@@ -988,6 +989,7 @@ const App: React.FC = () => {
                                   <input
                                     value={quickMask}
                                     onChange={(e) => setQuickMask(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && quickIp && !isApplying) handleQuickApply(); }}
                                     className="w-full bg-theme-bg-tertiary border border-theme-border-primary rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-theme-brand-primary/50 focus:border-theme-brand-primary outline-none transition-all text-theme-text-primary placeholder:text-theme-text-muted/40"
                                     placeholder="255.255.255.0"
                                   />
@@ -998,6 +1000,7 @@ const App: React.FC = () => {
                                   <input
                                     value={quickGateway}
                                     onChange={(e) => setQuickGateway(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && quickIp && !isApplying) handleQuickApply(); }}
                                     className="w-full bg-theme-bg-tertiary border border-theme-border-primary rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-theme-brand-primary/50 focus:border-theme-brand-primary outline-none transition-all text-theme-text-primary placeholder:text-theme-text-muted/40"
                                     placeholder="192.168.1.1"
                                   />
@@ -1092,6 +1095,25 @@ const App: React.FC = () => {
               </div>
               {view === 'system' && (<SystemHealth language={settings.language} eggsActive={eggsActive} />)}
               {view === 'system-events' && (<SystemEvents language={settings.language} />)}
+              {(view === 'win-shortcuts' || view === 'commands') && (
+                <WindowsShortcuts
+                  language={settings.language}
+                  iface={selectedInterface || undefined}
+                  onRenamePC={async () => {
+                    let currentName = '';
+                    try {
+                      if ((window as any).require) {
+                        const { ipcRenderer } = (window as any).require('electron');
+                        const stats = await ipcRenderer.invoke('get-system-stats');
+                        if (stats?.os?.computerName) currentName = stats.os.computerName;
+                      }
+                    } catch (e) { }
+                    setModalType('rename-pc');
+                    setModalInitialVal(currentName);
+                    setModalOpen(true);
+                  }}
+                />
+              )}
               {view === 'subnet' && <SubnetCalculator language={settings.language} />}
               {view === 'clipboard' && (
                 <ClipboardManager
@@ -1112,32 +1134,6 @@ const App: React.FC = () => {
                 />
               )}
               {view === 'internet' && <InternetStatus language={settings.language} />}
-              {view === 'commands' && (
-                selectedInterface ? (
-                  <NetworkCommands
-                    iface={selectedInterface}
-                    language={settings.language}
-                    onRenamePC={async () => {
-                      let currentName = '';
-                      try {
-                        if ((window as any).require) {
-                          const { ipcRenderer } = (window as any).require('electron');
-                          const stats = await ipcRenderer.invoke('get-system-stats');
-                          if (stats?.os?.computerName) currentName = stats.os.computerName;
-                        }
-                      } catch (e) { }
-                      setModalType('rename-pc');
-                      setModalInitialVal(currentName);
-                      setModalOpen(true);
-                    }}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-theme-text-muted border-2 border-dashed border-theme-border-primary rounded-2xl p-8 text-center">
-                    <Terminal size={48} className="mb-4 opacity-20" />
-                    <p className="text-lg font-medium">{t.selectInterfaceToCommand}</p>
-                  </div>
-                )
-              )}
               {view === 'credentials' && <CredentialLibrary language={settings.language} credentials={credentials} onAdd={(c) => setCredentials([...credentials, c])} onUpdate={(c) => setCredentials(credentials.map(x => x.id === c.id ? c : x))} onDelete={(id) => setCredentials(credentials.filter(x => x.id !== id))} onApplyProfile={handleApply} onAutoConnect={handleAutoConnect} />}
               {view === 'programs' && <InstalledPrograms language={settings.language} eggsActive={eggsActive} />}
               {view === 'help' && <HelpGuide language={settings.language} />}

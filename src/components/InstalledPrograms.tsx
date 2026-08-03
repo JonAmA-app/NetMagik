@@ -63,6 +63,14 @@ export const InstalledPrograms: React.FC<InstalledProgramsProps> = ({ language, 
     }, []);
 
     useEffect(() => {
+        const term = searchTerm.toLowerCase().trim();
+        if (term === 'rickroll' || term === 'never gonna give you up') {
+            window.dispatchEvent(new CustomEvent('easter-egg', { detail: { id: 'egg8', name: 'Rickroll' } }));
+            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
+        }
+    }, [searchTerm]);
+
+    useEffect(() => {
         if (window.electronAPI) {
             const handler = (data: any) => {
                 if (data.type === 'progress') {
