@@ -103,14 +103,14 @@ export const CreateProfileForm: React.FC<CreateProfileFormProps> = ({ initialPro
         <div className="space-y-1">
           <label className="text-xs font-medium text-theme-text-muted uppercase tracking-wider flex items-center gap-1.5">
             <FolderOpen size={12} />
-            {(t as any).profileFolder || 'Folder (optional)'}
+            {t.profileFolder}
           </label>
           <input
             type="text"
             list="folder-suggestions"
             value={folder}
             onChange={(e) => setFolder(e.target.value)}
-            placeholder={(t as any).profileFolderPlaceholder || 'e.g. Client A, Office...'}
+            placeholder={t.profileFolderPlaceholder}
             className="w-full bg-theme-bg-tertiary border border-theme-border-secondary rounded-lg px-3 py-2 text-sm text-theme-text-primary focus:outline-none focus:border-theme-brand-primary"
           />
           {existingFolders.length > 0 && (
@@ -207,7 +207,7 @@ export const CreateProfileForm: React.FC<CreateProfileFormProps> = ({ initialPro
             <div className="col-span-2 pt-3 border-t border-theme-border-secondary/40 mt-1 space-y-2.5">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-theme-text-primary">
-                  {(t as any).additionalIpsTitle || 'Additional IP Addresses'}
+                  {t.additionalIpsTitle}
                 </span>
                 <button
                   type="button"
@@ -215,7 +215,7 @@ export const CreateProfileForm: React.FC<CreateProfileFormProps> = ({ initialPro
                   className="flex items-center gap-1 text-[11px] font-bold text-theme-brand-primary hover:text-theme-brand-hover transition-colors"
                 >
                   <Plus size={13} />
-                  {(t as any).addIpShort || 'Add'}
+                  {t.addIpShort}
                 </button>
               </div>
 

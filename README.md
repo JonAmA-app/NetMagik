@@ -30,6 +30,20 @@ NetMajik is a modern, high-performance desktop application designed for network 
 
 ---
 
+## 📘 User Manuals / Manuales de Usuario
+
+Comprehensive step-by-step user manuals detailing every feature, button, and tool are available in 7 languages:
+
+- 🇪🇸 [Manual en Español](public/MANUAL_NETMAJIK_ES.md)
+- 🇺🇸 [English User Manual](public/MANUAL_NETMAJIK_EN.md)
+- 🇵🇹 [Manual em Português](public/MANUAL_NETMAJIK_PT.md)
+- 🇩🇪 [Deutsches Handbuch](public/MANUAL_NETMAJIK_DE.md)
+- 🇫🇷 [Manuel en Français](public/MANUAL_NETMAJIK_FR.md)
+- 🇨🇳 [中文用户指南](public/MANUAL_NETMAJIK_ZH.md)
+- 🇯🇵 [日本語ユーザーマニュアル](public/MANUAL_NETMAJIK_JA.md)
+
+---
+
 ## 🛠️ Technology Stack
 
 - **Frontend**: React 18 with TypeScript

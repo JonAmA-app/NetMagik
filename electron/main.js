@@ -910,6 +910,7 @@ ipcMain.handle('change-ip-config', async (event, { ifaceName, profile }) => {
         if (profile.type === 'DHCP') {
             commands.push(`netsh interface ip set address "${ifaceName}" dhcp`);
             commands.push(`netsh interface ip set dns "${ifaceName}" dhcp`);
+            commands.push(`ipconfig /release "${ifaceName}"`);
         } else {
             const { ipAddress, subnetMask, gateway, dnsPrimary, dnsSecondary, additionalIps } = profile.config;
             if (!isValidIp(ipAddress)) return reject(new Error('Invalid IP Address'));
@@ -917,6 +918,18 @@ ipcMain.handle('change-ip-config', async (event, { ifaceName, profile }) => {
             if (gateway && !isValidIp(gateway)) return reject(new Error('Invalid Gateway'));
             if (dnsPrimary && !isValidIp(dnsPrimary)) return reject(new Error('Invalid Primary DNS'));
             if (dnsSecondary && !isValidIp(dnsSecondary)) return reject(new Error('Invalid Secondary DNS'));
+
+            // Check if another interface currently has this exact static IP assigned
+            const osInterfaces = os.networkInterfaces();
+            for (const [name, netInfs] of Object.entries(osInterfaces)) {
+                if (name.toLowerCase() !== ifaceName.toLowerCase() && netInfs) {
+                    const hasConflict = netInfs.some(info => info.family === 'IPv4' && info.address === ipAddress);
+                    if (hasConflict && isSafeString(name)) {
+                        // Prepend command to release IP from conflicting interface
+                        commands.push(`netsh interface ip set address "${name}" dhcp`);
+                    }
+                }
+            }
 
             const gatewayCmd = gateway ? gateway : 'none';
             commands.push(`netsh interface ip set address "${ifaceName}" static ${ipAddress} ${subnetMask} ${gatewayCmd}`);
@@ -945,8 +958,8 @@ ipcMain.handle('change-ip-config', async (event, { ifaceName, profile }) => {
                 const combinedOutput = (stdout + stderr + (error ? error.message : "")).toLowerCase();
 
                 if (error) {
-                    if (combinedOutput.includes('run as administrator') || combinedOutput.includes('access is denied')) {
-                        return reject(new Error('Admin privileges required.'));
+                    if (combinedOutput.includes('run as administrator') || combinedOutput.includes('access is denied') || combinedOutput.includes('se requieren permisos')) {
+                        return reject(new Error('ADMIN_REQUIRED'));
                     }
 
                     // Check if DHCP is already active (common "error" that we want to treat as success)
@@ -960,9 +973,28 @@ ipcMain.handle('change-ip-config', async (event, { ifaceName, profile }) => {
                     if (isAlreadyDhcp) {
                         wasAlreadyActive = true;
                         executeNext(idx + 1);
-                    } else {
-                        reject(new Error(`Failed: ${stderr || error.message}`));
+                        return;
                     }
+
+                    // Ignore ipconfig /release errors on disconnected adapters
+                    if (commands[idx].startsWith('ipconfig /release')) {
+                        executeNext(idx + 1);
+                        return;
+                    }
+
+                    if (combinedOutput.includes('already exists') || combinedOutput.includes('ya existe') || combinedOutput.includes('parameter is incorrect') || combinedOutput.includes('parámetro no es correcto')) {
+                        return reject(new Error('IP_CONFLICT'));
+                    }
+
+                    if (combinedOutput.includes('disabled') || combinedOutput.includes('deshabilitada')) {
+                        return reject(new Error('INTERFACE_DISABLED'));
+                    }
+
+                    if (combinedOutput.includes('media disconnected') || combinedOutput.includes('medios desconectados')) {
+                        return reject(new Error('MEDIA_DISCONNECTED'));
+                    }
+
+                    reject(new Error(stderr || error.message));
                     return;
                 }
                 executeNext(idx + 1);
@@ -1702,15 +1734,38 @@ ipcMain.handle('find-free-ip-and-assign', async (event, { ifaceName, startIp, en
     const end = ipToInt(endIp);
     if (end < start || (end - start) > 500) return { success: false, message: 'Invalid or too large range (max 500 IPs)' };
 
-    // Temporarily bind interface to an IP in the target subnet with a broad mask (e.g. 255.0.0.0 or 255.255.0.0)
-    // to ensure Windows ARP engine sends packets on this physical adapter
-    const tempMask = startIp.startsWith('10.') ? '255.0.0.0' : (startIp.startsWith('172.') ? '255.255.0.0' : '255.255.0.0');
-    const tempCmd = `netsh interface ip set address "${ifaceName}" static ${startIp} ${tempMask}`;
+    // Temporarily bind interface to an IP OUTSIDE the scan range but in the same subnet,
+    // so the Windows ARP engine routes packets via this physical adapter without marking
+    // any IP inside the range as "in use" before we scan it.
+    const tempMask = startIp.startsWith('10.') ? '255.0.0.0' : '255.255.0.0';
+    
+    // Calculate a helper IP: use startIp with last octet = 250 if it falls outside [start, end],
+    // otherwise use end+1 clamped to 254, or start-1 clamped to 1.
+    const helperLastOctet = 250;
+    const startParts = startIp.split('.');
+    const endParts = endIp.split('.');
+    const helperIp = startParts[0] + '.' + startParts[1] + '.' + startParts[2] + '.' + helperLastOctet;
+    const helperInt = ipToInt(helperIp);
+    // If helperIp is inside the scan range, fall back to start-1 (min 1) or end+1 (max 254)
+    let tempIp = helperIp;
+    if (helperInt >= start && helperInt <= end) {
+        const startLastOctet = parseInt(startParts[3], 10);
+        const endLastOctet = parseInt(endParts[3], 10);
+        if (startLastOctet > 1) {
+            tempIp = startParts[0] + '.' + startParts[1] + '.' + startParts[2] + '.' + (startLastOctet - 1);
+        } else if (endLastOctet < 254) {
+            tempIp = endParts[0] + '.' + endParts[1] + '.' + endParts[2] + '.' + (endLastOctet + 1);
+        } else {
+            // Last resort: use start itself (original behavior)
+            tempIp = startIp;
+        }
+    }
+    const tempCmd = `netsh interface ip set address "${ifaceName}" static ${tempIp} ${tempMask}`;
     
     await new Promise((res) => {
         exec(tempCmd, () => res());
     });
-    // Give network stack a short moment to initialize the interface binding
+    // Give network stack a moment to initialize the interface binding
     await new Promise(r => setTimeout(r, 1000));
 
     const checkIp = (ip) => {

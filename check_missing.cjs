@@ -59,7 +59,7 @@ for (const [lang, langObj] of Object.entries(translationsMap)) {
 for (const lang of Object.keys(missingKeys)) {
     console.log(`\nLanguage: ${lang} is missing ${missingKeys[lang].length} keys.`);
     if (missingKeys[lang].length > 0) {
-        console.log(`Examples: ${missingKeys[lang].slice(0, 10).join(', ')}`);
+        console.log(`Keys: ${missingKeys[lang].join(', ')}`);
     }
 }
 

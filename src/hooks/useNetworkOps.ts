@@ -1,6 +1,24 @@
 import { useState } from 'react';
 import { Profile } from '../types';
 
+const formatNetworkError = (rawMsg: string, t: any): string => {
+    if (!rawMsg) return t.errorGenericFailed || 'Error configuring network profile';
+    if (rawMsg.includes('ADMIN_REQUIRED') || rawMsg.includes('Admin') || rawMsg.includes('elevation') || rawMsg.includes('access is denied')) {
+        return t.adminRequired || 'Administrator privileges required';
+    }
+    if (rawMsg.includes('IP_CONFLICT') || rawMsg.includes('already exists') || rawMsg.includes('ya existe') || rawMsg.includes('parameter is incorrect')) {
+        return t.errorIpConflict || 'IP conflict with another interface';
+    }
+    if (rawMsg.includes('INTERFACE_DISABLED') || rawMsg.includes('disabled') || rawMsg.includes('deshabilitada')) {
+        return t.errorInterfaceDisabled || 'Interface disabled in Windows';
+    }
+    if (rawMsg.includes('MEDIA_DISCONNECTED') || rawMsg.includes('disconnected') || rawMsg.includes('desconectados')) {
+        return t.errorMediaDisconnected || 'Network media disconnected';
+    }
+    let clean = rawMsg.replace(/^(Error:\s*)+/i, '').replace(/^(Failed:\s*)+/i, '');
+    return `${t.error || 'Error'}: ${clean}`;
+};
+
 export const useNetworkOps = (selectedInterface: any, t: any) => {
     const [isApplying, setIsApplying] = useState(false);
     const [showAdminPrompt, setShowAdminPrompt] = useState(false);
@@ -18,11 +36,11 @@ export const useNetworkOps = (selectedInterface: any, t: any) => {
             }
         } catch (error: any) {
             let errorMsg = error.message || 'Unknown error';
-            if (errorMsg.includes('Admin') || errorMsg.includes('elevation')) {
+            if (errorMsg.includes('ADMIN_REQUIRED') || errorMsg.includes('Admin') || errorMsg.includes('elevation')) {
                 setShowAdminPrompt(true);
-                return { success: false, adminRequired: true };
+                return { success: false, adminRequired: true, message: t.adminRequired };
             }
-            return { success: false, message: `${t.error}: ${errorMsg}` };
+            return { success: false, message: formatNetworkError(errorMsg, t) };
         } finally {
             setIsApplying(false);
         }
@@ -44,7 +62,7 @@ export const useNetworkOps = (selectedInterface: any, t: any) => {
                 }
             }
         } catch (e: any) {
-            return { success: false, message: `Error: ${e.message}` };
+            return { success: false, message: formatNetworkError(e.message, t) };
         } finally {
             setIsApplying(false);
         }
@@ -63,7 +81,7 @@ export const useNetworkOps = (selectedInterface: any, t: any) => {
                 }
             }
         } catch (e: any) {
-            return { success: false, message: `Error: ${e.message}` };
+            return { success: false, message: formatNetworkError(e.message, t) };
         } finally {
             setIsApplying(false);
         }

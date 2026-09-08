@@ -171,13 +171,6 @@ export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language,
         }
     };
 
-    const applyPreset = (start: string, end: string) => {
-        setStartOctets(start.split('.'));
-        setEndOctets(end.split('.'));
-        setLockedIndices([false, false, false, false]);
-        setManualEdit(true);
-    };
-
     const handleScan = async () => {
         // --- Validate range before scanning ---
         const hasEmptyOctets = startOctets.some(o => o === '') || endOctets.some(o => o === '');
@@ -446,25 +439,13 @@ export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language,
                                 </div>
                             </div>
                             
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                                    {[{ label: '1.x', s: '192.168.1.1', e: '192.168.1.254' }, { label: '0.x', s: '192.168.0.1', e: '192.168.0.254' }].map(p => (
-                                        <button
-                                            key={p.label}
-                                            onClick={() => applyPreset(p.s, p.e)}
-                                            disabled={isScanning}
-                                            className="px-2.5 py-1 rounded-lg bg-theme-bg-primary border border-theme-border-primary text-[10px] font-bold text-theme-text-muted hover:text-theme-brand-primary hover:border-theme-brand-primary transition-all whitespace-nowrap"
-                                        >
-                                            {p.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                {manualEdit && (
+                            {manualEdit && (
+                                <div className="flex items-center justify-end gap-2">
                                     <button onClick={() => setManualEdit(false)} disabled={isScanning} className="text-[10px] font-bold text-theme-brand-primary flex items-center gap-1">
                                         <RefreshCw size={10} /> {t.resetRange}
                                     </button>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="relative group/btn">

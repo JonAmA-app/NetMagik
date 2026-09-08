@@ -19,7 +19,6 @@ interface ProfileListProps {
 // ─── Single Profile Card ──────────────────────────────────────────────────────
 const ProfileCard: React.FC<{
   profile: Profile;
-  index: number;
   isApplying: boolean;
   isAdmin: boolean;
   language: Language;
@@ -29,11 +28,11 @@ const ProfileCard: React.FC<{
   onViewInventory: (id: string) => void;
   draggable: boolean;
   isDragging: boolean;
-  onDragStart: (i: number) => void;
+  onDragStart: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
-  onDrop: (i: number) => void;
+  onDrop: (e: React.DragEvent) => void;
   highlighted: boolean;
-}> = ({ profile, index, isApplying, isAdmin, language, onApply, onEdit, onDelete, onViewInventory, draggable, isDragging, onDragStart, onDragOver, onDrop, highlighted }) => {
+}> = ({ profile, isApplying, isAdmin, language, onApply, onEdit, onDelete, onViewInventory, draggable, isDragging, onDragStart, onDragOver, onDrop, highlighted }) => {
   const t = TRANSLATIONS[language] || TRANSLATIONS['en'];
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -48,9 +47,9 @@ const ProfileCard: React.FC<{
     <div
       ref={cardRef}
       draggable={draggable}
-      onDragStart={() => onDragStart(index)}
+      onDragStart={onDragStart}
       onDragOver={onDragOver}
-      onDrop={() => onDrop(index)}
+      onDrop={onDrop}
       className={`group bg-theme-bg-secondary border rounded-xl p-3 px-4 transition-all duration-300 flex flex-col gap-2.5 relative overflow-hidden
         ${draggable ? 'cursor-grab active:cursor-grabbing' : ''}
         ${isDragging ? 'opacity-50' : ''}
@@ -182,6 +181,7 @@ export const ProfileList: React.FC<ProfileListProps> = ({
   const t = TRANSLATIONS[language] || TRANSLATIONS['en'];
   const [showHelp, setShowHelp] = useState(false);
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
+  const [draggedProfileId, setDraggedProfileId] = useState<string | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('collapsedFolders');
@@ -254,6 +254,41 @@ export const ProfileList: React.FC<ProfileListProps> = ({
     setDraggedBlockIndex(null);
   };
 
+  const handleCardDragStart = (e: React.DragEvent, profileId: string) => {
+    e.stopPropagation();
+    setDraggedProfileId(profileId);
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  };
+
+  const handleCardDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+
+  const handleCardDrop = (e: React.DragEvent, targetProfileId: string) => {
+    e.stopPropagation();
+    if (!draggedProfileId || draggedProfileId === targetProfileId || !onUpdateOrder) {
+      setDraggedProfileId(null);
+      return;
+    }
+
+    const fromIndex = profiles.findIndex(p => p.id === draggedProfileId);
+    const toIndex = profiles.findIndex(p => p.id === targetProfileId);
+
+    if (fromIndex !== -1 && toIndex !== -1) {
+      const updatedProfiles = [...profiles];
+      const [moved] = updatedProfiles.splice(fromIndex, 1);
+      updatedProfiles.splice(toIndex, 0, moved);
+      onUpdateOrder(updatedProfiles);
+    }
+    setDraggedProfileId(null);
+  };
+
   const toggleFolder = (folderName: string) => {
     setCollapsedFolders(prev => {
       const next = new Set(prev);
@@ -263,9 +298,8 @@ export const ProfileList: React.FC<ProfileListProps> = ({
     });
   };
 
-  const cardProps = (profile: Profile, flatIndex: number) => ({
+  const cardProps = (profile: Profile) => ({
     profile,
-    index: flatIndex,
     isApplying,
     isAdmin,
     language,
@@ -273,11 +307,11 @@ export const ProfileList: React.FC<ProfileListProps> = ({
     onEdit,
     onDelete,
     onViewInventory,
-    draggable: false, // Intra-folder drag disabled to simplify block dragging
-    isDragging: false,
-    onDragStart: () => {},
-    onDragOver: () => {},
-    onDrop: () => {},
+    draggable: !!onUpdateOrder,
+    isDragging: draggedProfileId === profile.id,
+    onDragStart: (e: React.DragEvent) => handleCardDragStart(e, profile.id),
+    onDragOver: (e: React.DragEvent) => handleCardDragOver(e),
+    onDrop: (e: React.DragEvent) => handleCardDrop(e, profile.id),
     highlighted: highlightId === profile.id,
   });
 
@@ -364,8 +398,8 @@ export const ProfileList: React.FC<ProfileListProps> = ({
 
                 {!isCollapsed && (
                   <div className="p-3 pt-2 bg-theme-bg-primary/40 grid grid-cols-1 gap-3">
-                    {block.profiles.map((profile, i) => (
-                      <ProfileCard key={profile.id} {...cardProps(profile, block.originalIndexes[i])} />
+                    {block.profiles.map((profile) => (
+                      <ProfileCard key={profile.id} {...cardProps(profile)} />
                     ))}
                   </div>
                 )}
@@ -381,7 +415,7 @@ export const ProfileList: React.FC<ProfileListProps> = ({
                 onDrop={(e) => { e.stopPropagation(); handleDrop(index); }}
                 className={`${draggedBlockIndex === index ? 'opacity-50' : ''} ${!!onUpdateOrder ? 'cursor-grab active:cursor-grabbing' : ''}`}
               >
-                <ProfileCard {...cardProps(block.profile, block.originalIndex)} />
+                <ProfileCard {...cardProps(block.profile)} />
               </div>
             );
           }

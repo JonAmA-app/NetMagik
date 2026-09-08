@@ -181,7 +181,7 @@ export const IpRangeButtons: React.FC<IpRangeButtonsProps> = ({
 
           {presets.length > 0 && (
             <p className="text-[9px] text-theme-text-muted mt-2 px-1 leading-tight">
-              {t.presetDesc || 'Scans the range, confirms free IPs via ping, then assigns the first available one.'}
+              {t.presetDesc}
             </p>
           )}
         </div>
@@ -304,7 +304,7 @@ export const IpRangeButtons: React.FC<IpRangeButtonsProps> = ({
 
               {/* Color picker */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-theme-text-muted uppercase tracking-widest">Color</label>
+                <label className="text-[10px] font-bold text-theme-text-muted uppercase tracking-widest">{t.color}</label>
                 <div className="flex gap-2 flex-wrap">
                   {PRESET_COLORS.map(c => (
                     <button
@@ -320,7 +320,7 @@ export const IpRangeButtons: React.FC<IpRangeButtonsProps> = ({
               {/* Preview */}
               {form.label && (
                 <div className="rounded-xl bg-theme-bg-tertiary border border-theme-border-primary p-3 flex items-center gap-3">
-                  <span className="text-[10px] text-theme-text-muted font-bold uppercase tracking-widest">Preview</span>
+                  <span className="text-[10px] text-theme-text-muted font-bold uppercase tracking-widest">{t.preview}</span>
                   <div className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-bold text-white ${getColor(form.color).bg} shadow-md`}>
                     <Search size={13} />
                     <span className="max-w-[140px] truncate">{form.label}</span>
