@@ -3,7 +3,7 @@ import { Language } from '../types';
 import { APP_VERSION } from '../constants';
 import {
   ChevronDown, ChevronRight, LayoutDashboard, Search, X, Sliders,
-  Radar, KeyRound, BookOpen, Sparkles
+  Radar, KeyRound, BookOpen, Sparkles, Github, Download, ExternalLink
 } from 'lucide-react';
 
 interface HelpGuideProps {
@@ -1144,23 +1144,48 @@ export const HelpGuide: React.FC<HelpGuideProps> = ({ language }) => {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-3 text-theme-text-muted" />
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder={labels.searchPlaceholder}
-            className="bg-theme-bg-tertiary border border-theme-border-primary rounded-xl pl-9 pr-8 py-2 text-sm text-theme-text-primary placeholder:text-theme-text-muted/40 focus:ring-2 focus:ring-blue-500/50 outline-none w-full md:w-72 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-2.5 p-1 text-theme-text-muted hover:text-theme-text-primary rounded-lg transition-colors"
-            >
-              <X size={14} />
-            </button>
-          )}
+        {/* Actions: GitHub & Download Manual */}
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="https://github.com/JonAmA-app/NetMagik"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3.5 py-2 bg-theme-bg-tertiary text-theme-text-primary hover:text-blue-400 rounded-xl text-xs font-bold border border-theme-border-primary hover:border-blue-500/40 transition-all shadow-sm"
+            title="GitHub Repository"
+          >
+            <Github size={15} />
+            <span>GitHub</span>
+            <ExternalLink size={12} className="opacity-60" />
+          </a>
+
+          <a
+            href={`/MANUAL_NETMAJIK_${(lang || 'es').toUpperCase()}.md`}
+            download={`MANUAL_NETMAJIK_${(lang || 'es').toUpperCase()}.md`}
+            className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
+            title="Descargar Manual (.md)"
+          >
+            <Download size={15} />
+            <span>{lang === 'es' ? 'Descargar Manual (.md)' : 'Download Manual (.md)'}</span>
+          </a>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-3 text-theme-text-muted" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={labels.searchPlaceholder}
+              className="bg-theme-bg-tertiary border border-theme-border-primary rounded-xl pl-9 pr-8 py-2 text-sm text-theme-text-primary placeholder:text-theme-text-muted/40 focus:ring-2 focus:ring-blue-500/50 outline-none w-full md:w-60 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2.5 p-1 text-theme-text-muted hover:text-theme-text-primary rounded-lg transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
