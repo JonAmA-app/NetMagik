@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Monitor, Shield, Globe, Download, Upload, Maximize, Palette, Bell, Volume2, Lock, HelpCircle } from 'lucide-react';
-import { AppSettings, Language, Theme } from '../types';
+import { X, Monitor, Shield, Globe, Download, Upload, Maximize, Palette, Bell, Volume2, Lock, HelpCircle, RefreshCw, CheckCircle2, ArrowUpCircle } from 'lucide-react';
+import { AppSettings, Language, Theme, AppUpdateInfo } from '../types';
 import { TRANSLATIONS, APP_VERSION } from '../constants';
 
 interface SettingsModalProps {
@@ -84,8 +84,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminHelp, setShowAdminHelp] = useState(false);
+  const [appUpdate, setAppUpdate] = useState<AppUpdateInfo | null>(null);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateChecked, setUpdateChecked] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS['en'];
+
+  const handleCheckUpdate = async () => {
+    if (!window.electronAPI?.checkAppUpdate) return;
+    setIsCheckingUpdate(true);
+    try {
+      const res = await window.electronAPI.checkAppUpdate();
+      if (res?.success) {
+        setAppUpdate(res);
+        setUpdateChecked(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -526,6 +545,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <p className="text-[9px] text-theme-text-muted/60 mt-0.5">
               {t.developedBy || "Developed by"} <span className="text-theme-brand-primary font-bold">JonAmA</span>
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {appUpdate?.hasUpdate ? (
+              <button
+                onClick={() => {
+                  const url = appUpdate.downloadUrl || appUpdate.htmlUrl;
+                  if (window.electronAPI?.openExternalUrl) {
+                    window.electronAPI.openExternalUrl(url);
+                  } else {
+                    window.open(url, '_blank');
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-all animate-pulse"
+              >
+                <ArrowUpCircle size={14} />
+                <span>v{appUpdate.latestVersion} {t.newVersionAvailable || 'disponible'}</span>
+              </button>
+            ) : updateChecked && !appUpdate?.hasUpdate ? (
+              <div className="flex items-center gap-1 text-emerald-500 text-[11px] font-medium px-2 py-1 bg-emerald-500/10 rounded-lg">
+                <CheckCircle2 size={13} />
+                <span>{t.appUpToDate || 'NetMajik está actualizado'}</span>
+              </div>
+            ) : null}
+
+            <button
+              onClick={handleCheckUpdate}
+              disabled={isCheckingUpdate}
+              className="px-3 py-1.5 rounded-lg bg-theme-bg-secondary hover:bg-theme-bg-primary text-theme-text-muted hover:text-theme-text-primary border border-theme-border-primary text-[11px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50"
+              title={t.checkAppUpdates || 'Buscar actualizaciones de NetMajik'}
+            >
+              <RefreshCw size={12} className={isCheckingUpdate ? 'animate-spin text-theme-brand-primary' : ''} />
+              <span>{isCheckingUpdate ? (t.checkingAppUpdates || 'Buscando...') : (t.checkAppUpdates || 'Buscar actualizaciones')}</span>
+            </button>
           </div>
         </div>
       </div>

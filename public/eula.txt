@@ -1,4 +1,4 @@
-END USER LICENSE AGREEMENT (EULA) - NETMAJIK v1.0.8
+END USER LICENSE AGREEMENT (EULA) - NETMAJIK v1.0.9
 
 Copyright (c) 2024-2026 JonAmA. All rights reserved.
 
@@ -51,7 +51,7 @@ copies in your possession.
 This agreement is governed by applicable local laws.
 
 -------------------------------------------------------------------
-ACUERDO DE LICENCIA DE USUARIO FINAL (EULA) - NETMAJIK v1.0.8
+ACUERDO DE LICENCIA DE USUARIO FINAL (EULA) - NETMAJIK v1.0.9
 
 Copyright (c) 2024-2026 JonAmA. Todos los derechos reservados.
 

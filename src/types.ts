@@ -206,6 +206,19 @@ export interface AppSettings {
   launcherTrigger?: 'click' | 'hover';
 }
 
+export interface AppUpdateInfo {
+  success: boolean;
+  hasUpdate: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  releaseName: string;
+  releaseNotes: string;
+  htmlUrl: string;
+  downloadUrl: string;
+  publishedAt: string;
+  error?: string;
+}
+
 declare global {
   interface Window {
     electronAPI: {
@@ -220,6 +233,8 @@ declare global {
       showNotification: (payload: { title: string, body: string }) => Promise<void>;
       sendCustomToast: (payload: { toast: any, playSound: boolean }) => void;
       notificationWindowEmpty: () => void;
+      checkAppUpdate: () => Promise<AppUpdateInfo>;
+      openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
       getWingetUpdates: () => Promise<any>;
       updateWingetApp: (appId: string) => Promise<any>;
       checkShortcut: (shortcut: string) => Promise<boolean>;

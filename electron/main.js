@@ -1,5 +1,5 @@
 
-import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, shell, dialog, globalShortcut, clipboard, powerMonitor, Notification, screen } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, shell, dialog, globalShortcut, clipboard, powerMonitor, Notification, screen, net as electronNet } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -651,6 +651,72 @@ ipcMain.handle('relaunch-elevated', async () => {
     } else {
         app.relaunch();
         app.quit();
+    }
+});
+
+function isNewerVersion(remote, local) {
+    if (!remote || !local) return false;
+    const cleanRemote = remote.replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+    const cleanLocal = local.replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < Math.max(cleanRemote.length, cleanLocal.length); i++) {
+        const r = cleanRemote[i] || 0;
+        const l = cleanLocal[i] || 0;
+        if (r > l) return true;
+        if (r < l) return false;
+    }
+    return false;
+}
+
+ipcMain.handle('check-app-update', async () => {
+    try {
+        const currentVersion = app.getVersion() || '1.0.9';
+        const response = await electronNet.fetch('https://api.github.com/repos/JonAmA-app/NetMagik/releases/latest', {
+            headers: {
+                'User-Agent': 'NetMajik-Desktop-App',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        if (!response.ok) {
+            return { success: false, error: `GitHub API returned ${response.status}` };
+        }
+
+        const release = await response.json();
+        const latestVersion = (release.tag_name || '').replace(/^v/, '').trim();
+        let downloadUrl = release.html_url;
+        if (Array.isArray(release.assets)) {
+            const exeAsset = release.assets.find(a => a.name && a.name.toLowerCase().endsWith('.exe'));
+            if (exeAsset && exeAsset.browser_download_url) {
+                downloadUrl = exeAsset.browser_download_url;
+            }
+        }
+
+        const hasUpdate = isNewerVersion(latestVersion, currentVersion);
+        return {
+            success: true,
+            hasUpdate,
+            currentVersion,
+            latestVersion,
+            releaseName: release.name || release.tag_name,
+            releaseNotes: release.body || '',
+            htmlUrl: release.html_url,
+            downloadUrl,
+            publishedAt: release.published_at
+        };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('open-external-url', async (event, url) => {
+    try {
+        if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+            await shell.openExternal(url);
+            return { success: true };
+        }
+        return { success: false, error: 'Invalid URL scheme' };
+    } catch (err) {
+        return { success: false, error: err.message };
     }
 });
 

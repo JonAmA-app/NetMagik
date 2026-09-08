@@ -1,4 +1,4 @@
-# 📘 官方用户指南 — NetMajik v1.0.8
+# 📘 官方用户指南 — NetMajik v1.0.9
 **集成的自动化、网络管理与系统诊断工作站平台**
 
 *官方 GitHub 仓库: [https://github.com/JonAmA-app/NetMagik](https://github.com/JonAmA-app/NetMagik)*

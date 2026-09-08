@@ -1,4 +1,4 @@
-# 📘 Manual Oficial do Utilizador — NetMajik v1.0.8
+# 📘 Manual Oficial do Utilizador — NetMajik v1.0.9
 **Plataforma Integrada de Automatização, Gestão de Redes e Diagnóstico de Sistemas**
 
 *Repositório Oficial no GitHub: [https://github.com/JonAmA-app/NetMagik](https://github.com/JonAmA-app/NetMagik)*

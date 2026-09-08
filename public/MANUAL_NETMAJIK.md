@@ -1,4 +1,4 @@
-# 📘 Manual Oficial de Usuario — NetMajik v1.0.8
+# 📘 Manual Oficial de Usuario — NetMajik v1.0.9
 **La Plataforma Integrada de Automatización, Gestión de Redes y Diagnóstico Informático**
 
 ---

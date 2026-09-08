@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     relaunchElevated: () => ipcRenderer.invoke('relaunch-elevated'),
     rebootToBios: () => ipcRenderer.invoke('reboot-to-bios'),
     showNotification: (payload) => ipcRenderer.handle('show-notification', payload),
+    checkAppUpdate: () => ipcRenderer.invoke('check-app-update'),
+    openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
     getWingetUpdates: () => ipcRenderer.invoke('get-winget-updates'),
     updateWingetApp: (appId) => ipcRenderer.invoke('update-winget-app', appId),
     checkShortcut: (shortcut) => ipcRenderer.invoke('check-shortcut', shortcut),

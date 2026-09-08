@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Language } from '../types';
+import { Language, AppUpdateInfo } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { useToast } from '../context/ToastContext';
 import {
     Download, Search, RefreshCw, Package, ArrowUpCircle, X,
     ChevronDown, ChevronUp, CheckCircle2, Clock, FileJson, FileText,
-    LayoutGrid, List, Loader2, Check
+    LayoutGrid, List, Loader2, Check, ExternalLink, Sparkles
 } from 'lucide-react';
 
 interface Program {
@@ -41,11 +41,13 @@ export const InstalledPrograms: React.FC<InstalledProgramsProps> = ({ language, 
     const [programs, setPrograms] = useState<Program[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Winget states
+    // Winget & App states
     const [viewMode, setViewMode] = useState<'installed' | 'updates'>('installed');
     const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('list');
-    const { success, error } = useToast();
+    const { success, error, info } = useToast();
     const [updates, setUpdates] = useState<WingetUpdate[]>([]);
+    const [appUpdate, setAppUpdate] = useState<AppUpdateInfo | null>(null);
+    const [showReleaseNotes, setShowReleaseNotes] = useState(false);
     const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
     // Detailed update states
@@ -59,7 +61,7 @@ export const InstalledPrograms: React.FC<InstalledProgramsProps> = ({ language, 
 
     useEffect(() => {
         fetchPrograms();
-        checkWingetUpdates();
+        checkUpdates();
     }, []);
 
     useEffect(() => {
@@ -98,20 +100,45 @@ export const InstalledPrograms: React.FC<InstalledProgramsProps> = ({ language, 
         }
     };
 
-    const checkWingetUpdates = async () => {
+    const checkUpdates = async () => {
         setIsCheckingUpdates(true);
         try {
             if (window.electronAPI) {
-                success(t.software, t.checkWingetUpdates);
-                const results = await window.electronAPI.getWingetUpdates();
-                if (results.success && results.updates) {
-                    setUpdates(results.updates);
+                success(t.software, t.checkWingetUpdates || 'Buscando actualizaciones...');
+                
+                const [wingetRes, appRes] = await Promise.allSettled([
+                    window.electronAPI.getWingetUpdates(),
+                    window.electronAPI.checkAppUpdate ? window.electronAPI.checkAppUpdate() : Promise.resolve(null)
+                ]);
+
+                if (wingetRes.status === 'fulfilled' && wingetRes.value?.success && wingetRes.value.updates) {
+                    setUpdates(wingetRes.value.updates);
+                }
+
+                if (appRes.status === 'fulfilled' && appRes.value?.success) {
+                    setAppUpdate(appRes.value);
+                    if (appRes.value.hasUpdate) {
+                        info('NetMajik', `${t.newVersionAvailable || '¡Nueva versión disponible!'} v${appRes.value.latestVersion}`);
+                    }
                 }
             }
         } catch (e) {
-            console.error('Winget update check failed', e);
+            console.error('Update check failed', e);
         } finally {
             setIsCheckingUpdates(false);
+        }
+    };
+
+    const handleOpenUrl = async (url: string) => {
+        if (!url) return;
+        try {
+            if (window.electronAPI?.openExternalUrl) {
+                await window.electronAPI.openExternalUrl(url);
+            } else {
+                window.open(url, '_blank');
+            }
+        } catch (err) {
+            window.open(url, '_blank');
         }
     };
 
@@ -224,15 +251,15 @@ export const InstalledPrograms: React.FC<InstalledProgramsProps> = ({ language, 
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'installed' ? 'bg-theme-brand-primary text-white shadow-lg shadow-theme-brand-primary/20' : 'text-theme-text-muted hover:bg-theme-bg-hover hover:text-theme-text-primary'}`}
                     >
                         {t.installed}
-                </button>
+                    </button>
                     <button
                         onClick={() => setViewMode('updates')}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all relative ${viewMode === 'updates' ? 'bg-theme-brand-primary text-white shadow-lg shadow-theme-brand-primary/20' : 'text-theme-text-muted hover:bg-theme-bg-hover hover:text-theme-text-primary'}`}
                     >
                         {t.updates}
-                        {updates.length > 0 && (
-                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-theme-bg-primary font-bold">
-                                {updates.length}
+                        {(updates.length + (appUpdate?.hasUpdate ? 1 : 0)) > 0 && (
+                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-theme-bg-primary font-bold animate-pulse">
+                                {updates.length + (appUpdate?.hasUpdate ? 1 : 0)}
                             </span>
                         )}
                     </button>
@@ -296,9 +323,10 @@ export const InstalledPrograms: React.FC<InstalledProgramsProps> = ({ language, 
                 </div>
 
                 <button
-                    onClick={() => viewMode === 'installed' ? fetchPrograms() : checkWingetUpdates()}
+                    onClick={() => viewMode === 'installed' ? fetchPrograms() : checkUpdates()}
                     disabled={isLoading || isCheckingUpdates}
                     className="p-2.5 bg-theme-bg-secondary border border-theme-border-primary rounded-xl text-theme-brand-primary hover:bg-theme-brand-primary/10 transition-all disabled:opacity-50"
+                    title={t.refreshList || 'Actualizar lista'}
                 >
                     <RefreshCw size={20} className={(isLoading || isCheckingUpdates) ? 'animate-spin' : ''} />
                 </button>
@@ -379,67 +407,143 @@ export const InstalledPrograms: React.FC<InstalledProgramsProps> = ({ language, 
                     )
                 ) : (
                     /* Updates View */
-                    isCheckingUpdates ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-theme-text-muted">
-                            <Loader2 className="animate-spin mb-4" size={48} />
-                            <p className="font-medium">{t.checkingUpdates || 'Checking for winget updates...'}</p>
-                        </div>
-                    ) : filteredUpdates.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-theme-text-muted border-2 border-dashed border-theme-border-primary rounded-2xl">
-                            <CheckCircle2 size={48} className="text-emerald-500/30 mb-4" />
-                            <p className="text-lg font-bold">{t.everythingUpdated || 'Everything is up to date!'}</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between px-4">
-                                <button
-                                    onClick={toggleSelectAll}
-                                    className="text-xs font-bold text-theme-brand-primary hover:underline flex items-center gap-2"
-                                >
-                                    <CheckCircle2 size={14} />
-                                    {Object.keys(selectedUpdates).length === filteredUpdates.length ? t.deselectAll : t.selectAll}
-                                </button>
-                                <span className="text-xs text-theme-text-muted">{filteredUpdates.length} {t.updatesAvailable || 'updates available'}</span>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3">
-                                {filteredUpdates.map((upd, idx) => (
-                                    <div
-                                        key={idx}
-                                        onClick={() => setSelectedUpdates(prev => ({ ...prev, [upd.id]: !prev[upd.id] }))}
-                                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-4 ${selectedUpdates[upd.id] ? 'bg-theme-brand-primary/10 border-theme-brand-primary shadow-md' : 'bg-theme-bg-secondary border-theme-border-primary hover:bg-theme-bg-hover'}`}
-                                    >
-                                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedUpdates[upd.id] ? 'bg-theme-brand-primary border-theme-brand-primary text-white' : 'border-theme-border-primary bg-theme-bg-tertiary'}`}>
-                                            {selectedUpdates[upd.id] && <Check size={14} strokeWidth={3} />}
+                    <div className="space-y-4">
+                        {/* Featured NetMajik Update Banner */}
+                        {appUpdate?.hasUpdate && (
+                            <div className="p-5 rounded-2xl border-2 border-theme-brand-primary/40 bg-gradient-to-br from-theme-brand-primary/15 via-theme-bg-secondary to-theme-bg-secondary shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-32 h-32 bg-theme-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                                    <div className="flex items-start gap-4">
+                                        <div className="p-3 bg-theme-brand-primary text-white rounded-xl shadow-lg shadow-theme-brand-primary/30 mt-0.5">
+                                            <Sparkles size={24} className="animate-pulse" />
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="font-bold text-theme-text-primary text-sm truncate">{upd.name}</h4>
-                                                <span className="text-[10px] text-theme-text-muted font-mono bg-theme-bg-tertiary px-1.5 rounded">{upd.id}</span>
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h3 className="text-lg font-bold text-theme-text-primary flex items-center gap-2">
+                                                    NetMajik
+                                                    <span className="text-xs font-black bg-theme-brand-primary/20 text-theme-brand-primary px-2 py-0.5 rounded-md">
+                                                        PRO
+                                                    </span>
+                                                </h3>
+                                                <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center gap-1">
+                                                    <ArrowUpCircle size={13} />
+                                                    {t.newVersionAvailable || '¡Nueva versión disponible!'}
+                                                </span>
                                             </div>
-                                            <div className="flex items-center gap-4 mt-1">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-[10px] font-bold text-theme-text-muted uppercase tracking-wider">{t.current || 'Current'}:</span>
-                                                    <span className="text-xs font-mono text-theme-text-muted">{upd.version}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <ArrowUpCircle size={12} className="text-emerald-500" />
-                                                    <span className="text-[10px] font-bold text-theme-text-muted uppercase tracking-wider">{t.available || 'Available'}:</span>
-                                                    <span className="text-xs font-mono text-emerald-500 font-bold">{upd.available}</span>
-                                                </div>
+                                            <div className="flex items-center gap-3 mt-1.5 text-xs text-theme-text-muted flex-wrap">
+                                                <span>{t.currentVersionLabel || 'Versión actual'}: <strong className="font-mono text-theme-text-primary">v{appUpdate.currentVersion}</strong></span>
+                                                <span>•</span>
+                                                <span>{t.latestVersionLabel || 'Última versión'}: <strong className="font-mono text-emerald-400 font-bold">v{appUpdate.latestVersion}</strong></span>
+                                                {appUpdate.publishedAt && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span className="text-[11px] opacity-75">{new Date(appUpdate.publishedAt).toLocaleDateString()}</span>
+                                                    </>
+                                                )}
                                             </div>
+                                            {appUpdate.releaseNotes && (
+                                                <div className="mt-3">
+                                                    <button
+                                                        onClick={() => setShowReleaseNotes(!showReleaseNotes)}
+                                                        className="text-xs font-semibold text-theme-brand-primary hover:underline flex items-center gap-1 transition-colors"
+                                                    >
+                                                        {showReleaseNotes ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                        {t.releaseNotes || 'Novedades de la versión'}
+                                                    </button>
+                                                    {showReleaseNotes && (
+                                                        <div className="mt-2 p-3 bg-theme-bg-tertiary rounded-xl text-xs text-theme-text-muted max-h-48 overflow-y-auto whitespace-pre-wrap border border-theme-border-secondary custom-scrollbar">
+                                                            {appUpdate.releaseNotes}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); handleUpdateApp(upd.id, upd.name); }}
-                                            className="p-2.5 bg-theme-brand-primary/10 text-theme-brand-primary rounded-xl hover:bg-theme-brand-primary hover:text-white transition-all group"
+                                            onClick={() => handleOpenUrl(appUpdate.downloadUrl || appUpdate.htmlUrl)}
+                                            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all"
                                         >
-                                            <Download size={20} className="group-hover:-translate-y-0.5 transition-transform" />
+                                            <Download size={16} />
+                                            {t.downloadUpdate || 'Descargar Actualización'}
+                                        </button>
+                                        <button
+                                            onClick={() => handleOpenUrl(appUpdate.htmlUrl)}
+                                            className="p-2.5 bg-theme-bg-tertiary hover:bg-theme-bg-hover text-theme-text-muted hover:text-theme-text-primary rounded-xl border border-theme-border-primary text-xs font-bold transition-all"
+                                            title={t.viewOnGitHub || 'Ver en GitHub'}
+                                        >
+                                            <ExternalLink size={16} />
                                         </button>
                                     </div>
-                                ))}
+                                </div>
                             </div>
-                        </div>
-                    )
+                        )}
+
+                        {/* Winget Updates section */}
+                        {isCheckingUpdates ? (
+                            <div className="flex flex-col items-center justify-center h-64 text-theme-text-muted">
+                                <Loader2 className="animate-spin mb-4" size={48} />
+                                <p className="font-medium">{t.checkingUpdates || 'Checking for updates...'}</p>
+                            </div>
+                        ) : filteredUpdates.length === 0 && !appUpdate?.hasUpdate ? (
+                            <div className="flex flex-col items-center justify-center h-64 text-theme-text-muted border-2 border-dashed border-theme-border-primary rounded-2xl">
+                                <CheckCircle2 size={48} className="text-emerald-500/30 mb-4" />
+                                <p className="text-lg font-bold">{t.everythingUpdated || 'Everything is up to date!'}</p>
+                            </div>
+                        ) : (
+                            filteredUpdates.length > 0 && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-4">
+                                        <button
+                                            onClick={toggleSelectAll}
+                                            className="text-xs font-bold text-theme-brand-primary hover:underline flex items-center gap-2"
+                                        >
+                                            <CheckCircle2 size={14} />
+                                            {Object.keys(selectedUpdates).length === filteredUpdates.length ? t.deselectAll : t.selectAll}
+                                        </button>
+                                        <span className="text-xs text-theme-text-muted">{filteredUpdates.length} {t.updatesAvailable || 'updates available'}</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {filteredUpdates.map((upd, idx) => (
+                                            <div
+                                                key={idx}
+                                                onClick={() => setSelectedUpdates(prev => ({ ...prev, [upd.id]: !prev[upd.id] }))}
+                                                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-4 ${selectedUpdates[upd.id] ? 'bg-theme-brand-primary/10 border-theme-brand-primary shadow-md' : 'bg-theme-bg-secondary border-theme-border-primary hover:bg-theme-bg-hover'}`}
+                                            >
+                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedUpdates[upd.id] ? 'bg-theme-brand-primary border-theme-brand-primary text-white' : 'border-theme-border-primary bg-theme-bg-tertiary'}`}>
+                                                    {selectedUpdates[upd.id] && <Check size={14} strokeWidth={3} />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-bold text-theme-text-primary text-sm truncate">{upd.name}</h4>
+                                                        <span className="text-[10px] text-theme-text-muted font-mono bg-theme-bg-tertiary px-1.5 rounded">{upd.id}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 mt-1">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-[10px] font-bold text-theme-text-muted uppercase tracking-wider">{t.current || 'Current'}:</span>
+                                                            <span className="text-xs font-mono text-theme-text-muted">{upd.version}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <ArrowUpCircle size={12} className="text-emerald-500" />
+                                                            <span className="text-[10px] font-bold text-theme-text-muted uppercase tracking-wider">{t.available || 'Available'}:</span>
+                                                            <span className="text-xs font-mono text-emerald-500 font-bold">{upd.available}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleUpdateApp(upd.id, upd.name); }}
+                                                    className="p-2.5 bg-theme-brand-primary/10 text-theme-brand-primary rounded-xl hover:bg-theme-brand-primary hover:text-white transition-all group"
+                                                >
+                                                    <Download size={20} className="group-hover:-translate-y-0.5 transition-transform" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        )}
+                    </div>
                 )}
             </div>
 

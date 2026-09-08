@@ -16,7 +16,18 @@ const themeIconMap: Record<string, string> = {
 
 export const TitleBar: React.FC<TitleBarProps> = ({ theme = 'dark', t }) => {
     const [, setClickCount] = React.useState(0);
+    const [appUpdate, setAppUpdate] = React.useState<any>(null);
     const clickTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+    React.useEffect(() => {
+        if (window.electronAPI?.checkAppUpdate) {
+            window.electronAPI.checkAppUpdate().then((res: any) => {
+                if (res?.success && res.hasUpdate) {
+                    setAppUpdate(res);
+                }
+            }).catch(() => {});
+        }
+    }, []);
 
     const handleVersionClick = () => {
         setClickCount(prev => {
@@ -70,7 +81,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ theme = 'dark', t }) => {
                     </div>
                 </div>
                 <span
-                    className="text-[10px] font-bold text-theme-text-primary tracking-wider uppercase"
+                    className="text-[10px] font-bold text-theme-text-primary tracking-wider uppercase flex items-center"
                 >
                     NetMajik <span
                         className="text-theme-text-muted opacity-60 ml-1 cursor-pointer"
@@ -79,6 +90,22 @@ export const TitleBar: React.FC<TitleBarProps> = ({ theme = 'dark', t }) => {
                     >
                         v{APP_VERSION}
                     </span>
+                    {appUpdate?.hasUpdate && (
+                        <button
+                            onClick={() => {
+                                if (window.electronAPI?.openExternalUrl) {
+                                    window.electronAPI.openExternalUrl(appUpdate.downloadUrl || appUpdate.htmlUrl);
+                                } else {
+                                    window.open(appUpdate.htmlUrl, '_blank');
+                                }
+                            }}
+                            title={`NetMajik v${appUpdate.latestVersion} - ${t.newVersionAvailable || 'Disponible'}`}
+                            className="ml-2 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[9px] font-bold flex items-center gap-1 hover:bg-emerald-500 hover:text-white transition-all cursor-pointer animate-pulse"
+                            style={{ WebkitAppRegion: 'no-drag' } as any}
+                        >
+                            <span>↑ v{appUpdate.latestVersion}</span>
+                        </button>
+                    )}
                     <span className="text-[9px] text-theme-brand-primary opacity-40 ml-2 font-black italic tracking-tighter">JonAmA</span>
                 </span>
             </div>

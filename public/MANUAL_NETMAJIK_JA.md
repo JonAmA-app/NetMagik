@@ -1,4 +1,4 @@
-# 📘 公式ユーザーマニュアル — NetMajik v1.0.8
+# 📘 公式ユーザーマニュアル — NetMajik v1.0.9
 **自動化、ネットワーク管理、システム診断のための統合ワークステーションプラットフォーム**
 
 *公式 GitHub リポジトリ: [https://github.com/JonAmA-app/NetMagik](https://github.com/JonAmA-app/NetMagik)*

@@ -64,3 +64,4 @@ coverage/
 # Optional: package-lock.json if you want to skip lock files
 # package-lock.json
 # yarn.lock
+.agents/

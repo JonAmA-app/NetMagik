@@ -2,7 +2,7 @@
 import { IpType, NetworkInterface, Profile, ClipboardSnippet, DeviceCredential } from './types';
 
 // Shared application version constant
-export const APP_VERSION = '1.0.8';
+export const APP_VERSION = '1.0.9';
 export const DONATION_URL = 'https://donate.stripe.com/8x25kDae2grLgkZd914sE00-';
 
 export const INITIAL_INTERFACES: NetworkInterface[] = [];
@@ -901,12 +901,32 @@ const BASE_TRANSLATIONS = {
   shortcutDescPlaceholder: 'e.g., Windows Registry Editor',
   commandResult: 'Command Result',
   systemConsole: 'System Console',
+  netmajikUpdate: 'NetMajik Update',
+  newVersionAvailable: 'New version available!',
+  currentVersionLabel: 'Current version',
+  latestVersionLabel: 'Latest version',
+  downloadUpdate: 'Download Update',
+  viewOnGitHub: 'View on GitHub',
+  releaseNotes: 'Release Notes',
+  checkAppUpdates: 'Check for NetMajik Updates',
+  appUpToDate: 'NetMajik is up to date',
+  checkingAppUpdates: 'Checking for updates...',
 };
 
 export const TRANSLATIONS: Record<string, typeof BASE_TRANSLATIONS> = {
   en: BASE_TRANSLATIONS,
   es: {
     ...BASE_TRANSLATIONS,
+    netmajikUpdate: 'Actualización de NetMajik',
+    newVersionAvailable: '¡Nueva versión disponible!',
+    currentVersionLabel: 'Versión actual',
+    latestVersionLabel: 'Última versión',
+    downloadUpdate: 'Descargar Actualización',
+    viewOnGitHub: 'Ver en GitHub',
+    releaseNotes: 'Novedades de la versión',
+    checkAppUpdates: 'Buscar actualizaciones de NetMajik',
+    appUpToDate: 'NetMajik está actualizado',
+    checkingAppUpdates: 'Buscando actualizaciones...',
     errorIpConflict: 'Conflicto de IP: La dirección IP ya está asignada a otra interfaz de red. Cambie esa interfaz a DHCP o desactívela para continuar.',
     errorInterfaceDisabled: 'La interfaz de red seleccionada está deshabilitada en Windows.',
     errorMediaDisconnected: 'La interfaz de red no está conectada o no tiene enlace de medio.',

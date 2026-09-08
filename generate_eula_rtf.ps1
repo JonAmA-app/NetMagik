@@ -33,7 +33,7 @@ $rtf = New-Object System.Text.StringBuilder
 [void]$rtf.Append('\viewkind4\uc1\pard\f0\fs18' + [char]13 + [char]10)
 
 # Intro header
-[void]$rtf.Append('\b\fs22 NetMajik v1.0.8 - End User License Agreement / Acuerdo de Licencia\b0\fs18\par' + [char]13 + [char]10)
+[void]$rtf.Append('\b\fs22 NetMajik v1.0.9 - End User License Agreement / Acuerdo de Licencia\b0\fs18\par' + [char]13 + [char]10)
 [void]$rtf.Append('\par' + [char]13 + [char]10)
 [void]$rtf.Append('Scroll to find your language. / Despl' + (ConvertTo-RtfText 'á') + 'zate para encontrar tu idioma.\par' + [char]13 + [char]10)
 [void]$rtf.Append('\par' + [char]13 + [char]10)
