@@ -16,14 +16,22 @@ export const useInterfaces = () => {
 
                 netshList.forEach(iface => {
                     let status: 'Connected' | 'Disconnected' | 'Disabled' = 'Disconnected';
-                    const adminStateLower = iface.adminState?.toLowerCase() || '';
-                    if (adminStateLower.includes('disabl') || adminStateLower.includes('deshab')) status = 'Disabled';
-                    else if (iface.connectionState?.toLowerCase().includes('connect')) status = 'Connected';
+                    const adminStateLower = (iface.adminState || '').toLowerCase();
+                    const connLower = (iface.connectionState || '').toLowerCase();
+                    const hasIp = !!(iface.ip && iface.ip !== '0.0.0.0' && iface.ip !== '127.0.0.1');
+
+                    if (adminStateLower.includes('disabl') || adminStateLower.includes('deshab')) {
+                        status = 'Disabled';
+                    } else if (connLower.includes('connect') || connLower.includes('conect') || hasIp) {
+                        status = 'Connected';
+                    }
                     
                     let desc = "Ethernet Adapter";
                     const lowerName = iface.name.toLowerCase();
-                    if (lowerName.includes('wi-fi') || lowerName.includes('wlan') || lowerName.includes('inalámbrica')) desc = "Wireless Adapter";
+                    if (lowerName.includes('wi-fi') || lowerName.includes('wlan') || lowerName.includes('inalámbrica') || lowerName.includes('wireless')) desc = "Wireless Adapter";
                     else if (iface.isVirtual) desc = "Virtual Adapter";
+
+                    const defaultGw = hasIp ? `${iface.ip.split('.').slice(0, 3).join('.')}.1` : '0.0.0.0';
                     
                     detected.push({
                         id: iface.name, 
@@ -33,12 +41,43 @@ export const useInterfaces = () => {
                         macAddress: iface.mac || '??:??:??:??:??:??',
                         currentIp: iface.ip || '0.0.0.0',
                         allIps: iface.allIps || [iface.ip || '0.0.0.0'],
-                        netmask: iface.netmask || '0.0.0.0',
+                        netmask: iface.netmask || (hasIp ? '255.255.255.0' : '0.0.0.0'),
+                        gateway: iface.gateway || defaultGw,
                         isVirtual: iface.isVirtual || false
                     });
                 });
 
                 const final = detected.filter(d => d.currentIp !== '127.0.0.1' && !d.name.toLowerCase().includes('pseudo') && !d.name.toLowerCase().includes('loopback'));
+                
+                // Prioritize Wired Ethernet over Virtual Adapters, and put Wi-Fi LAST in the list
+                final.sort((a, b) => {
+                    const isWifi = (name: string, desc: string = '') => {
+                        const str = `${name} ${desc}`.toLowerCase();
+                        return str.includes('wi-fi') || str.includes('wifi') || str.includes('wlan') || str.includes('inalámbrica') || str.includes('inalambrica') || str.includes('wireless') || str.includes('802.11');
+                    };
+
+                    const isVirt = (name: string, desc: string = '', isVirtFlag?: boolean) => {
+                        if (isVirtFlag) return true;
+                        const str = `${name} ${desc}`.toLowerCase();
+                        return str.includes('virtual') || str.includes('vmware') || str.includes('vbox') || str.includes('hyper-v') || str.includes('docker') || str.includes('vpn') || str.includes('bluetooth');
+                    };
+
+                    const getPrio = (iface: NetworkInterface) => {
+                        const wifi = isWifi(iface.name, iface.description);
+                        const virt = isVirt(iface.name, iface.description, iface.isVirtual);
+                        const isConn = iface.status === 'Connected';
+
+                        if (wifi) return isConn ? 40 : 41; // Wi-Fi is LAST
+                        if (virt) return isConn ? 30 : 31;
+                        return isConn ? 10 : 11; // Wired Ethernet is FIRST
+                    };
+
+                    const prioA = getPrio(a);
+                    const prioB = getPrio(b);
+                    if (prioA !== prioB) return prioA - prioB;
+                    return a.name.localeCompare(b.name);
+                });
+
                 const stringified = JSON.stringify(final);
                 if (stringified !== prevInterfacesRef.current) {
                     setInterfaces(final);

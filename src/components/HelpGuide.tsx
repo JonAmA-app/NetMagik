@@ -1,13 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { Language } from '../types';
 import { APP_VERSION } from '../constants';
+import { getOnboardingTours } from '../onboardingCatalog';
 import {
   ChevronDown, ChevronRight, LayoutDashboard, Search, X, Sliders,
-  Radar, KeyRound, BookOpen, Sparkles, Github, Download, ExternalLink
+  Radar, KeyRound, BookOpen, Sparkles, Github, Download, ExternalLink,
+  Play, RotateCcw, Compass
 } from 'lucide-react';
 
 interface HelpGuideProps {
   language: Language;
+  onLaunchTour?: (tourId: string) => void;
+  onResetSeenTours?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -15,6 +19,7 @@ interface HelpGuideProps {
 // ─────────────────────────────────────────────────────────────────────────────
 const LABELS_DICT: Record<string, {
   title: string; sub: string; searchPlaceholder: string;
+  catTours: string;
   catGettingStarted: string; catWinTools: string; catAnalysis: string;
   catAuxiliary: string; catSecrets: string;
   badgeBasic: string; badgeFeatured: string; badgeUseful: string;
@@ -26,6 +31,7 @@ const LABELS_DICT: Record<string, {
     title: 'Help Center & Complete Manual',
     sub: 'Detailed usage guide, pro tips, and troubleshooting for all NetMajik tools.',
     searchPlaceholder: 'Search in manual (e.g. free IP, ARP, DNS...)',
+    catTours: '🎓 0. Interactive Tours & Guides',
     catGettingStarted: '🏁 1. Getting Started & IP Config',
     catWinTools: '🛠️ 2. Windows Features & Maintenance',
     catAnalysis: '📊 3. Analysis, Discovery & Network',
@@ -40,6 +46,7 @@ const LABELS_DICT: Record<string, {
     title: 'Centro de Ayuda y Manual Completo',
     sub: 'Guía detallada de uso, consejos pro y resolución de problemas para todas las herramientas de NetMajik.',
     searchPlaceholder: 'Buscar en el manual (ej: IP libre, ARP, DNS...)',
+    catTours: '🎓 0. Tours y Guías Interactivas',
     catGettingStarted: '🏁 1. Primeros Pasos y Configuración IP',
     catWinTools: '🛠️ 2. Funciones de Windows y Mantenimiento',
     catAnalysis: '📊 3. Análisis, Descubrimiento y Red',
@@ -54,6 +61,7 @@ const LABELS_DICT: Record<string, {
     title: 'Central de Ajuda e Manual Completo',
     sub: 'Guia detalhado de uso, dicas pro e solução de problemas para todas as ferramentas do NetMajik.',
     searchPlaceholder: 'Pesquisar no manual (ex: IP livre, ARP, DNS...)',
+    catTours: '🎓 0. Tours e Guias Interativos',
     catGettingStarted: '🏁 1. Primeiros Passos e Configuração de IP',
     catWinTools: '🛠️ 2. Recursos do Windows e Manutenção',
     catAnalysis: '📊 3. Análise, Descoberta e Rede',
@@ -68,6 +76,7 @@ const LABELS_DICT: Record<string, {
     title: 'Hilfe-Center & Vollständiges Handbuch',
     sub: 'Detaillierte Anleitung, Profi-Tipps und Fehlerbehebung für alle NetMajik-Tools.',
     searchPlaceholder: 'Handbuch durchsuchen (z.B. freie IP, ARP, DNS...)',
+    catTours: '🎓 0. Interaktive Touren & Anleitungen',
     catGettingStarted: '🏁 1. Erste Schritte & IP-Konfiguration',
     catWinTools: '🛠️ 2. Windows-Funktionen & Wartung',
     catAnalysis: '📊 3. Analyse, Erkennung & Netzwerk',
@@ -82,6 +91,7 @@ const LABELS_DICT: Record<string, {
     title: "Centre d'Aide et Manuel Complet",
     sub: "Guide d'utilisation détaillé, conseils pro et dépannage pour tous les outils NetMajik.",
     searchPlaceholder: 'Rechercher dans le manuel (ex: IP libre, ARP, DNS...)',
+    catTours: '🎓 0. Visites Guidées Interactives',
     catGettingStarted: '🏁 1. Premiers Pas et Config IP',
     catWinTools: '🛠️ 2. Fonctionnalités Windows et Maintenance',
     catAnalysis: '📊 3. Analyse, Découverte et Réseau',
@@ -96,6 +106,7 @@ const LABELS_DICT: Record<string, {
     title: '帮助中心与完整手册',
     sub: 'NetMajik 所有工具的详细使用指南、高级技巧与故障排除。',
     searchPlaceholder: '手册搜索（例如：空闲 IP、ARP、DNS...）',
+    catTours: '🎓 0. 交互式新手引导与教程',
     catGettingStarted: '🏁 1. 入门与 IP 配置',
     catWinTools: '🛠️ 2. Windows 功能与维护',
     catAnalysis: '📊 3. 分析、发现与网络',
@@ -110,6 +121,7 @@ const LABELS_DICT: Record<string, {
     title: 'ヘルプセンターと完全マニュアル',
     sub: 'NetMajik 全ツールの詳細な使用法、プロのコツ、トラブルシューティング。',
     searchPlaceholder: 'マニュアルを検索（例: フリーIP、ARP、DNS...）',
+    catTours: '🎓 0. インタラクティブツアー＆ガイド',
     catGettingStarted: '🏁 1. はじめに & IP 設定',
     catWinTools: '🛠️ 2. Windows 機能とメンテナンス',
     catAnalysis: '📊 3. 解析・検出・ネットワーク',
@@ -826,16 +838,18 @@ const getContent = (lang: string, key: string): Array<{ heading: string; content
   return langData[key] || GUIDE_CONTENT.en[key] || [];
 };
 
-export const HelpGuide: React.FC<HelpGuideProps> = ({ language }) => {
+export const HelpGuide: React.FC<HelpGuideProps> = ({ language, onLaunchTour, onResetSeenTours }) => {
   const lang = language || 'en';
   const labels = LABELS_DICT[lang] || LABELS_DICT.en;
 
-  const [activeCategory, setActiveCategory] = useState<string>('getting-started');
+  const [activeCategory, setActiveCategory] = useState<string>('tours');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
     'interfaces-main': true,
     'easter-riddles': true,
   });
+
+  const onboardingTours = useMemo(() => getOnboardingTours(language), [language]);
 
   const toggleItem = (id: string) => {
     setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }));
@@ -1103,6 +1117,7 @@ export const HelpGuide: React.FC<HelpGuideProps> = ({ language }) => {
 
   // Categories list
   const categories = [
+    { id: 'tours', label: labels.catTours, count: onboardingTours.length },
     { id: 'getting-started', label: labels.catGettingStarted, count: guideData.find(g => g.category === 'getting-started')?.items.length || 0 },
     { id: 'win-tools', label: labels.catWinTools, count: guideData.find(g => g.category === 'win-tools')?.items.length || 0 },
     { id: 'analysis', label: labels.catAnalysis, count: guideData.find(g => g.category === 'analysis')?.items.length || 0 },
@@ -1215,7 +1230,88 @@ export const HelpGuide: React.FC<HelpGuideProps> = ({ language }) => {
 
       {/* Main Content Area */}
       <div className="space-y-6">
-        {(searchQuery ? filteredData : [currentCategoryData]).map(categoryGroup => (
+        {/* Interactive Tours Grid (When Tours Category is active) */}
+        {!searchQuery && activeCategory === 'tours' ? (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-theme-bg-secondary border border-theme-border-primary shadow-sm">
+              <div className="flex items-center gap-3.5">
+                <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                  <Compass size={24} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-theme-text-primary">
+                    {lang === 'es' ? 'Centro de Guías y Tours Interactivos' : 'Interactive Tours & Walkthrough Center'}
+                  </h3>
+                  <p className="text-xs text-theme-text-muted mt-0.5">
+                    {lang === 'es'
+                      ? 'Inicia cualquier guía interactiva para aprender a usar cada función con pasos visuales guiados.'
+                      : 'Launch any interactive walkthrough to learn how to use features with step-by-step visual guidance.'}
+                  </p>
+                </div>
+              </div>
+
+              {onResetSeenTours && (
+                <button
+                  onClick={onResetSeenTours}
+                  className="px-3.5 py-2 rounded-xl bg-theme-bg-tertiary hover:bg-theme-bg-hover text-theme-text-muted hover:text-theme-text-primary text-xs font-bold border border-theme-border-primary transition-all flex items-center gap-2 self-start md:self-auto"
+                >
+                  <RotateCcw size={14} />
+                  <span>{lang === 'es' ? 'Restablecer avisos de bienvenida' : 'Reset Welcome Prompts'}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {onboardingTours.map((tour: any) => (
+                <div
+                  key={tour.id}
+                  className="bg-theme-bg-secondary border border-theme-border-primary hover:border-theme-brand-primary/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="p-2.5 rounded-xl bg-theme-bg-tertiary text-theme-brand-primary group-hover:scale-105 transition-transform">
+                        <Sparkles size={18} />
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                        tour.mode === 'basic' 
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                          : tour.mode === 'advanced'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                      }`}>
+                        {tour.mode === 'basic' ? (lang === 'es' ? 'Básico' : 'Basic') : tour.mode === 'advanced' ? (lang === 'es' ? 'Avanzado' : 'Advanced') : (lang === 'es' ? 'Ambos Modos' : 'All Modes')}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold text-theme-text-primary text-sm group-hover:text-theme-brand-primary transition-colors">
+                        {tour.title}
+                      </h4>
+                      <p className="text-xs text-theme-text-muted mt-1 leading-relaxed line-clamp-2">
+                        {tour.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-theme-border-secondary flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-theme-text-muted">
+                      {tour.steps.length} {lang === 'es' ? 'pasos guiados' : 'guided steps'}
+                    </span>
+
+                    <button
+                      onClick={() => onLaunchTour && onLaunchTour(tour.id)}
+                      className="px-3.5 py-1.5 rounded-xl bg-theme-brand-primary hover:bg-theme-brand-hover text-white text-xs font-bold shadow-sm shadow-theme-brand-primary/20 transition-all flex items-center gap-1.5 hover:-translate-y-0.5 active:translate-y-0"
+                    >
+                      <Play size={12} fill="currentColor" />
+                      <span>{lang === 'es' ? 'Iniciar Tour' : 'Start Tour'}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+        (searchQuery ? filteredData : [currentCategoryData]).map(categoryGroup => (
           <div key={categoryGroup.category} className="space-y-4">
             {searchQuery && (
               <h3 className="text-base font-bold text-theme-text-primary flex items-center gap-2 border-b border-theme-border-primary pb-2">
@@ -1275,7 +1371,8 @@ export const HelpGuide: React.FC<HelpGuideProps> = ({ language }) => {
               })}
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </div>
   );

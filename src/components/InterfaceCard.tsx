@@ -59,19 +59,31 @@ export const InterfaceCard: React.FC<InterfaceCardProps> = ({ iface, isSelected,
                             </span>
                         )}
                     </div>
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex flex-col gap-1 mt-1 min-w-0">
                         <div className="relative flex items-center">
                             {!isDisabled && (
                                 <div className="absolute -left-3 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
                             )}
                             <span className={`text-[11px] truncate font-mono tracking-tight transition-colors ${isSelected ? 'text-theme-text-secondary' : 'text-theme-text-muted'}`}>
-                                {isDisabled ? 'Offline' : iface.currentIp} {profileName && !isDisabled ? `(${profileName})` : ''}
+                                {isDisabled ? 'Offline' : (iface.currentIp || 'Sin IP')}
                             </span>
+                            {!isDisabled && iface.allIps && iface.allIps.length > 1 && (
+                                <span className="text-[8px] font-bold bg-sky-500/10 text-sky-400 px-1 py-0.5 rounded shrink-0 ml-1.5">
+                                    +{iface.allIps.length - 1} IP
+                                </span>
+                            )}
                         </div>
-                        {!isDisabled && iface.allIps && iface.allIps.length > 1 && (
-                            <span className="text-[8px] font-bold bg-sky-500/10 text-sky-400 px-1 py-0.5 rounded shrink-0">
-                                +{iface.allIps.length - 1} IP
-                            </span>
+
+                        {!isDisabled && (
+                            <div className="interface-profile-badge inline-flex items-center gap-1 w-fit">
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border truncate max-w-[170px] ${
+                                    profileName
+                                        ? 'bg-theme-brand-primary/10 text-theme-brand-primary border-theme-brand-primary/25'
+                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                                }`}>
+                                    {profileName ? `🏷️ ${profileName}` : '⚙️ DHCP (Auto)'}
+                                </span>
+                            </div>
                         )}
                     </div>
                     {/* Render extra IPs if present */}

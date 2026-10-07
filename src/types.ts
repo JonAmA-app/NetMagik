@@ -187,6 +187,8 @@ export type Theme = 'dark' | 'light' | 'matrix' | 'sakura';
 export interface AppSettings {
   theme: Theme;
   language: Language;
+  appMode?: 'basic' | 'advanced';
+  seenOnboardings?: string[];
   startMaximized: boolean;
   favoriteTools: string[];
   toolOrder: string[];
@@ -204,6 +206,24 @@ export interface AppSettings {
   notificationSound: boolean;
   monitorSystemEvents: boolean;
   launcherTrigger?: 'click' | 'hover';
+}
+
+export interface OnboardingStep {
+  targetSelector?: string;
+  title: string;
+  content: string;
+  position?: 'top' | 'bottom' | 'left' | 'right' | 'center';
+  badge?: string;
+}
+
+export interface OnboardingTourConfig {
+  id: string;
+  title: string;
+  description: string;
+  iconName: string;
+  targetView: string;
+  mode?: 'basic' | 'advanced' | 'both';
+  steps: OnboardingStep[];
 }
 
 export interface AppUpdateInfo {

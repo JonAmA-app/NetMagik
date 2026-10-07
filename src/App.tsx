@@ -4,7 +4,8 @@ import {
   Plus, Settings, AlertTriangle, Monitor, Wifi, Activity,
   Clipboard as ClipboardIcon, Radar, Globe, KeyRound,
   Shield, HelpCircle, RefreshCw, Zap, Calculator,
-  LayoutGrid, Network, Heart, Search, Package, Layers, Sliders
+  LayoutGrid, Network, Heart, Search, Package, Layers, Sliders,
+  ArrowLeft, Cable
 } from 'lucide-react';
 
 import {
@@ -17,6 +18,7 @@ import {
   PingTarget, ExternalApp, IpRangePreset
 } from './types';
 
+import { BasicDashboard } from './components/BasicDashboard';
 import { InterfaceCard } from './components/InterfaceCard';
 import { ProfileList } from './components/ProfileList';
 import { CreateProfileForm } from './components/CreateProfileForm';
@@ -48,6 +50,10 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { TitleBar } from './components/TitleBar';
 import { EasterEggTracker } from './components/EasterEggTracker';
 import { useToast } from './context/ToastContext';
+import { OnboardingTour } from './components/OnboardingTour';
+import { getOnboardingTours } from './onboardingCatalog';
+import { OnboardingTourConfig } from './types';
+
 const App: React.FC = () => {
   // Hooks
   const { interfaces, isRefreshing, isToggling, loadInterfaces } = useInterfaces();
@@ -63,6 +69,8 @@ const App: React.FC = () => {
   const [settings, setSettings] = useLocalStorage<AppSettings>('netmajik_settings', {
     theme: 'dark',
     language: 'en',
+    appMode: 'basic',
+    seenOnboardings: [],
     startMaximized: false,
     favoriteTools: ['profiles', 'clipboard', 'connectivity', 'scanner', 'port-scanner', 'internet', 'credentials', 'system', 'subnet', 'commands', 'programs'],
     toolOrder: ['profiles', 'clipboard', 'connectivity', 'scanner', 'port-scanner', 'internet', 'credentials', 'system', 'subnet', 'commands', 'programs'],
@@ -78,6 +86,8 @@ const App: React.FC = () => {
     monitorSystemEvents: false,
     launcherTrigger: 'click'
   });
+
+  const [activeTour, setActiveTour] = useState<OnboardingTourConfig | null>(null);
 
   // Background System Hardware Monitor
   useEffect(() => {
@@ -172,6 +182,7 @@ const App: React.FC = () => {
   const [pingTargets, setPingTargets] = useState<PingTarget[]>([]);
   const [targetPortScannerIp, setTargetPortScannerIp] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isManagingProfiles, setIsManagingProfiles] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -268,7 +279,7 @@ const App: React.FC = () => {
     return iface;
   });
 
-  const selectedInterface = mappedInterfaces.find(i => i.id === selectedInterfaceId);
+  const selectedInterface = mappedInterfaces.find(i => i.id === selectedInterfaceId) || mappedInterfaces.find(i => i.status === 'Connected') || mappedInterfaces[0];
   const currentProfile = profiles.find(p => p.id === selectedInterface?.currentProfileId);
 
   const { isApplying, applyProfile, autoConnect, findFreeIpAndAssign, showAdminPrompt, setShowAdminPrompt } = useNetworkOps(selectedInterface, t);
@@ -293,13 +304,13 @@ const App: React.FC = () => {
         setIsAdmin(elevated);
       };
 
-      const fetchOUI = async () => {
-        const { mergeVendorData } = await import('./mac-vendors');
-        const result = await window.electronAPI.fetchOuiDatabase();
-        if (result.success && result.data) {
-          mergeVendorData(result.data);
-        }
-      };
+      // OUI DB loaded on demand
+
+
+
+
+
+
 
       window.electronAPI.onSystemResume(() => {
         if (settings.securityEnabled && settings.passwordProtectWake && settings.password) {
@@ -308,7 +319,7 @@ const App: React.FC = () => {
       });
 
       checkAdmin();
-      fetchOUI();
+
 
       return () => {
         window.electronAPI.removeListeners('navigate-to');
@@ -349,6 +360,77 @@ const App: React.FC = () => {
     }
   }, [mappedInterfaces]);
 
+  // Onboarding auto-trigger effect on first entrance
+  useEffect(() => {
+    const tours = getOnboardingTours(settings.language);
+    const seen = settings.seenOnboardings || [];
+
+    // 1. Welcome Tour for first launch of NetMajik
+    if (!seen.includes('welcome')) {
+      const welcomeTour = tours.find((t: any) => t.id === 'welcome');
+      if (welcomeTour) {
+        const timer = setTimeout(() => {
+          setActiveTour(welcomeTour);
+        }, 700);
+        return () => clearTimeout(timer);
+      }
+    }
+
+    // 2. Contextual Tour for the current active view if not seen yet
+    const viewTour = tours.find((t: any) => t.targetView === view && t.id !== 'welcome');
+    if (viewTour && !seen.includes(viewTour.id)) {
+      const currentMode = settings.appMode || 'basic';
+      if (!viewTour.mode || viewTour.mode === 'both' || viewTour.mode === currentMode) {
+        const timer = setTimeout(() => {
+          setActiveTour(viewTour);
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [view, settings.language, settings.appMode]);
+
+  const handleTourComplete = (tourId: string) => {
+    setSettings(prev => {
+      const seen = prev.seenOnboardings || [];
+      if (!seen.includes(tourId)) {
+        return { ...prev, seenOnboardings: [...seen, tourId] };
+      }
+      return prev;
+    });
+    setActiveTour(null);
+  };
+
+  const handleTourSkip = () => {
+    if (activeTour) {
+      setSettings(prev => {
+        const seen = prev.seenOnboardings || [];
+        if (!seen.includes(activeTour.id)) {
+          return { ...prev, seenOnboardings: [...seen, activeTour.id] };
+        }
+        return prev;
+      });
+    }
+    setActiveTour(null);
+  };
+
+  const handleLaunchTour = (tourId: string) => {
+    const tours = getOnboardingTours(settings.language);
+    const tour = tours.find((t: any) => t.id === tourId);
+    if (tour) {
+      if (tour.targetView && view !== tour.targetView) {
+        setView(tour.targetView);
+      }
+      setTimeout(() => {
+        setActiveTour(tour);
+      }, 400);
+    }
+  };
+
+  const handleResetSeenTours = () => {
+    setSettings(prev => ({ ...prev, seenOnboardings: [] }));
+    success(settings.language === 'es' ? 'Avisos de bienvenida restablecidos' : 'Welcome tours reset successfully');
+  };
+
 
 
   const handleToggleIface = async (id: string, enable: boolean) => {
@@ -384,6 +466,30 @@ const App: React.FC = () => {
       loadInterfaces(false);
     } else if (res?.message) {
       error(res.message);
+    }
+  };
+
+    const handleRenewIp = async () => {
+    if (!selectedInterface) return;
+    info(t.renewingIp || 'Renovando dirección IP (DHCP)...');
+    try {
+      if (window.electronAPI) {
+        const res = await window.electronAPI.executeNetworkCommand({ command: 'renew-ip' });
+        if (res && res.success) {
+          success(t.ipRenewed || 'IP renovada / reasignada correctamente');
+        } else {
+          // Fallback: apply DHCP profile
+          const dhcpRes = await applyProfile({ id: 'dhcp-default', name: 'DHCP', type: IpType.DHCP });
+          if (dhcpRes?.success) {
+            success(t.ipRenewed || 'IP reasignada por DHCP');
+          } else {
+            error(dhcpRes?.message || 'No se pudo reasignar la IP');
+          }
+        }
+        loadInterfaces(false);
+      }
+    } catch (e: any) {
+      error(e.message || 'Error reasignando IP');
     }
   };
 
@@ -730,29 +836,92 @@ const App: React.FC = () => {
     { id: 'programs', label: t.programs, icon: <Package size={18} />, colorClass: "text-emerald-600" }
   ];
 
-  const sortedTools = [...allTools].sort((a, b) => {
-    const toolOrder = settings.toolOrder || [];
-    const idxA = toolOrder.indexOf(a.id);
-    const idxB = toolOrder.indexOf(b.id);
-    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-  });
+  const basicToolIds = ['profiles', 'connectivity', 'scanner', 'credentials', 'clipboard', 'internet'];
 
-  const SidebarItem = ({ id, icon, label, colorClass }: any) => (
-    <button
-      onClick={() => { setView(id); setIsCreating(false); }}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 border-l-4 ${view === id
-        ? `bg-theme-bg-primary shadow-sm ${colorClass.replace('text-', 'border-')}`
-        : 'border-transparent text-theme-text-muted hover:bg-theme-bg-hover hover:text-theme-text-primary'
-        }`}
-    >
-      <div className={`${view === id ? colorClass : ''} transition-colors`}>{icon}</div>
-      <span className={`text-sm font-semibold truncate ${view === id ? 'text-theme-text-primary' : ''}`}>{label}</span>
-    </button>
-  );
+  const sortedTools = [...allTools]
+    .filter(tool => {
+      if ((settings.appMode || 'basic') === 'basic') {
+        return basicToolIds.includes(tool.id);
+      }
+      return (settings.favoriteTools || []).includes(tool.id);
+    })
+    .sort((a, b) => {
+      const toolOrder = settings.toolOrder || [];
+      const idxA = toolOrder.indexOf(a.id);
+      const idxB = toolOrder.indexOf(b.id);
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+
+  const SidebarItem = ({ id, icon, label, colorClass }: any) => {
+    const isActive = view === id;
+    return (
+      <button
+        onClick={() => { setView(id); setIsCreating(false); }}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 border-l-4 ${isActive
+          ? `bg-theme-bg-primary shadow-sm ${colorClass.replace('text-', 'border-')}`
+          : 'border-transparent text-theme-text-muted hover:bg-theme-bg-hover hover:text-theme-text-primary'
+          }`}
+      >
+        <div className={`relative shrink-0 ${isActive ? colorClass : ''} transition-colors`}>
+          {icon}
+          {isActive && (
+            <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${colorClass.replace('text-', 'bg-')} animate-pulse ring-1 ring-white/20`} />
+          )}
+        </div>
+        <span className={`text-sm font-semibold truncate ${isActive ? 'text-theme-text-primary' : ''}`}>{label}</span>
+      </button>
+    );
+  };
+
+  const isBasicMode = (settings.appMode || 'basic') === 'basic';
+
+  // Live gateway latency for sidebar network status strip
+  const [gatewayLatency, setGatewayLatency] = React.useState<number | null>(null);
+  const [latencyChecking, setLatencyChecking] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isBasicMode || !window.electronAPI) return;
+    const activeIface = mappedInterfaces.find(i => i.status === 'Connected');
+    if (!activeIface) return;
+    const parts = (activeIface.currentIp || '').split('.');
+    const gw = parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}.1` : null;
+    if (!gw) return;
+
+    const ping = async () => {
+      setLatencyChecking(true);
+      try {
+        const res = await window.electronAPI.pingTarget({ ip: gw });
+        if (res?.success) {
+          const match = (res.stdout || '').match(/[=<](\d+)ms/i);
+          setGatewayLatency(match ? parseInt(match[1]) : 1);
+        } else {
+          setGatewayLatency(null);
+        }
+      } catch { setGatewayLatency(null); }
+      finally { setLatencyChecking(false); }
+    };
+
+    ping();
+    const id = setInterval(ping, 15000);
+    return () => clearInterval(id);
+  }, [mappedInterfaces.map(i => i.id + i.status).join(','), isBasicMode]);
 
   return (
     <>
-      <TitleBar theme={settings.theme} t={t} />
+      <TitleBar 
+        theme={settings.theme} 
+        t={t} 
+        appMode={settings.appMode || 'basic'}
+        onToggleAppMode={(mode) => setSettings({ ...settings, appMode: mode })}
+        onOpenSettings={() => {
+          if (settings.securityEnabled && settings.passwordProtectSettings && settings.password) {
+            setUnlockCallback(() => () => setIsSettingsOpen(true));
+            setIsLocked(true);
+            return;
+          }
+          setIsSettingsOpen(true);
+        }}
+      />
       <div className="h-screen pt-8 flex text-theme-text-primary overflow-hidden font-sans selection:bg-brand-500/30 relative" style={{ backgroundColor: settings.theme === 'matrix' ? 'transparent' : 'var(--color-bg-primary)' }}>
 
         <ExternalAppLauncher
@@ -767,7 +936,8 @@ const App: React.FC = () => {
           }}
         />
 
-        <aside className="w-72 bg-theme-bg-secondary border-r border-theme-border-primary flex flex-col z-20 shadow-xl overflow-hidden">
+        {!isBasicMode && (
+          <aside className="w-72 bg-theme-bg-secondary border-r border-theme-border-primary flex flex-col z-20 shadow-xl overflow-hidden">
           {/* Logo Area */}
           <div className="p-6 border-b border-theme-border-secondary">
             <div className="flex items-center justify-between w-full group cursor-default">
@@ -817,6 +987,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <button
+                id="global-search-btn"
                 onClick={() => setIsGlobalSearchOpen(true)}
                 className="p-2 rounded-lg text-theme-text-muted hover:text-theme-brand-primary hover:bg-theme-bg-hover transition-all"
                 title={`${t.globalSearch} (Ctrl+K)`}
@@ -826,8 +997,42 @@ const App: React.FC = () => {
             </div>
           </div>
 
+          {/* Network Status Strip */}
+          {(() => {
+            const connIface = mappedInterfaces.find(i => i.status === 'Connected');
+            if (!connIface) return null;
+            const isWifi = connIface.name.toLowerCase().includes('wi-fi') || connIface.name.toLowerCase().includes('wlan') || connIface.name.toLowerCase().includes('wireless');
+            const latColor = gatewayLatency === null
+              ? 'text-theme-text-muted'
+              : gatewayLatency < 10 ? 'text-emerald-400'
+              : gatewayLatency < 50 ? 'text-amber-400'
+              : 'text-rose-400';
+            const dotColor = gatewayLatency === null
+              ? 'bg-theme-text-muted'
+              : gatewayLatency < 10 ? 'bg-emerald-400'
+              : gatewayLatency < 50 ? 'bg-amber-400'
+              : 'bg-rose-400';
+            return (
+              <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-theme-bg-tertiary border border-theme-border-secondary flex items-center gap-2.5">
+                <div className="shrink-0 text-theme-text-muted">
+                  {isWifi ? <Wifi size={13} /> : <Cable size={13} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-theme-text-secondary truncate leading-none">{connIface.name}</p>
+                  <p className="text-[9px] font-mono text-theme-text-muted truncate mt-0.5">{connIface.currentIp}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className={`w-1.5 h-1.5 rounded-full ${dotColor} ${!latencyChecking ? 'animate-pulse' : ''} shrink-0`} />
+                  <span className={`text-[9px] font-bold tabular-nums ${latColor}`}>
+                    {latencyChecking ? '…' : gatewayLatency !== null ? `${gatewayLatency}ms` : '—'}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Interfaces Area - FIXED */}
-          <div className="px-4 py-4 border-b border-theme-border-secondary">
+          <div id="sidebar-interfaces" className="px-4 py-4 border-b border-theme-border-secondary">
             <div className="flex items-center justify-between mb-3 px-3">
               <span className="text-xs font-bold text-theme-text-muted uppercase tracking-widest leading-none">Interfaces</span>
               <button onClick={() => loadInterfaces(false)} className="p-1 text-theme-text-muted hover:text-theme-brand-primary transition-colors">
@@ -855,27 +1060,28 @@ const App: React.FC = () => {
           </div>
 
           {/* Tools Area - SCROLLABLE */}
-          <div className="flex-1 overflow-y-auto py-4 custom-scrollbar">
+          <div id="sidebar-tools" className="flex-1 overflow-y-auto py-4 custom-scrollbar">
             <div className="px-4 mb-4">
               <div className="px-3 mb-2">
                 <span className="text-xs font-bold text-theme-text-muted uppercase tracking-widest leading-none">{t.tools}</span>
               </div>
               {sortedTools
-                .filter(tool => (settings.favoriteTools || []).includes(tool.id))
                 .map(tool => (
                   <SidebarItem key={tool.id} id={tool.id} label={tool.label} icon={tool.icon} colorClass={tool.colorClass} />
                 ))
               }
-              <button
-                onClick={() => { setView('tools-manager'); setIsCreating(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 border-l-4 mt-2 ${view === 'tools-manager'
-                  ? 'bg-theme-bg-primary shadow-sm border-theme-brand-primary text-theme-brand-primary'
-                  : 'border-transparent text-theme-text-muted hover:bg-theme-bg-hover'
-                  }`}
-              >
-                <LayoutGrid size={18} />
-                <span className={`text-sm font-semibold truncate ${view === 'tools-manager' ? 'text-theme-text-primary' : ''}`}>{t.toolsManager}</span>
-              </button>
+              {settings.appMode === 'advanced' && (
+                <button
+                  onClick={() => { setView('tools-manager'); setIsCreating(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 border-l-4 mt-2 ${view === 'tools-manager'
+                    ? 'bg-theme-bg-primary shadow-sm border-theme-brand-primary text-theme-brand-primary'
+                    : 'border-transparent text-theme-text-muted hover:bg-theme-bg-hover'
+                    }`}
+                >
+                  <LayoutGrid size={18} />
+                  <span className={`text-sm font-semibold truncate ${view === 'tools-manager' ? 'text-theme-text-primary' : ''}`}>{t.toolsManager}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -912,13 +1118,59 @@ const App: React.FC = () => {
               <span>{t.systemSettings}</span>
             </button>
           </div>
-        </aside >
+        </aside>
+        )}
 
         <main className="flex-1 flex flex-col min-w-0 bg-theme-bg-primary relative h-full">
-          <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
-            <div className="max-w-5xl mx-auto animate-fade-in h-full">
+          <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+            <div className={`${isBasicMode && view === 'profiles' && !isManagingProfiles && !isCreating ? 'max-w-6xl' : 'max-w-5xl'} mx-auto animate-fade-in h-full`}>
+              {isBasicMode && (view !== 'profiles' || isManagingProfiles || isCreating) && (
+                <div className="mb-6 flex items-center justify-between">
+                  <button
+                    onClick={() => { setView('profiles'); setIsManagingProfiles(false); setIsCreating(false); }}
+                    className="px-4 py-2 rounded-xl bg-theme-bg-secondary hover:bg-theme-bg-hover text-theme-text-primary border border-theme-border-primary text-xs font-bold flex items-center gap-2 transition-all shadow-sm group"
+                  >
+                    <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform text-sky-400" />
+                    <span>{t.backToHome || 'Volver al Inicio'}</span>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-theme-text-muted">{t.basicMode || 'Modo Básico'}</span>
+                  </div>
+                </div>
+              )}
+
               {view === 'profiles' && (
-                selectedInterface ? (
+                isBasicMode && !isManagingProfiles && !isCreating ? (
+                  <BasicDashboard
+                    interfaces={mappedInterfaces}
+                    selectedInterface={selectedInterface}
+                    onSelectInterface={(iface) => setSelectedInterfaceId(iface.id)}
+                    profiles={profiles}
+                    onApplyProfile={handleApply}
+                    isApplying={isApplying}
+                    onSelectView={(targetView) => { setView(targetView); setIsManagingProfiles(false); setIsCreating(false); }}
+                    onCreateProfile={() => { setEditingProfile(null); setIsCreating(true); setIsManagingProfiles(true); }}
+                    onManageProfiles={() => setIsManagingProfiles(true)}
+                    onOpenSettings={() => {
+                      if (settings.securityEnabled && settings.passwordProtectSettings && settings.password) {
+                        setUnlockCallback(() => () => setIsSettingsOpen(true));
+                        setIsLocked(true);
+                        return;
+                      }
+                      setIsSettingsOpen(true);
+                    }}
+                    onOpenDonate={() => setIsDonationOpen(true)}
+                    onOpenHelp={() => {
+                      setView('help');
+                      setIsManagingProfiles(false);
+                      setIsCreating(false);
+                    }}
+                    language={settings.language}
+                    onRefreshInterfaces={() => loadInterfaces(false)}
+                    isRefreshing={isRefreshing}
+                    onRenewIp={handleRenewIp}
+                  />
+                ) : selectedInterface ? (
                   <div className="animate-slide-up">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                       <div className="flex items-center gap-5">
@@ -930,7 +1182,7 @@ const App: React.FC = () => {
                           <p className="text-theme-text-muted text-sm mt-1 font-medium">{selectedInterface.description} - {selectedInterface.macAddress}</p>
                         </div>
                       </div>
-                      {!isCreating && (<button onClick={() => { setEditingProfile(null); setIsCreating(true); }} className="neo-button flex items-center gap-2 bg-theme-brand-primary hover:bg-theme-brand-hover text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-theme-brand-primary/20"><Plus size={18} /> {t.createProfile}</button>)}
+                      {!isCreating && (<button id="create-profile-btn" onClick={() => { setEditingProfile(null); setIsCreating(true); }} className="neo-button flex items-center gap-2 bg-theme-brand-primary hover:bg-theme-brand-hover text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-theme-brand-primary/20"><Plus size={18} /> {t.createProfile}</button>)}
                     </div>
                     {isCreating ? (
                       <CreateProfileForm
@@ -943,7 +1195,7 @@ const App: React.FC = () => {
                     ) : (
                       <>
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-                          <div className="lg:col-span-3 space-y-6">
+                          <div id="profiles-list-container" className="lg:col-span-3 space-y-6">
                             <ProfileList
                               profiles={profiles}
                               onApply={handleApply}
@@ -966,7 +1218,7 @@ const App: React.FC = () => {
                           </div>
 
                           <div className="lg:col-span-1 space-y-6 sticky top-8">
-                            <div className="glass-card border-none p-6 rounded-2xl space-y-5 shadow-xl shadow-theme-brand-primary/5">
+                            <div id="quick-ip-card" className="glass-card border-none p-6 rounded-2xl space-y-5 shadow-xl shadow-theme-brand-primary/5">
                               <div className="flex items-center gap-2 pb-2 border-b border-theme-border-primary/50">
                                 <Zap size={18} className="text-theme-brand-primary" />
                                 <h3 className="font-bold text-theme-text-primary text-sm uppercase tracking-wider">{t.quickIp}</h3>
@@ -1024,7 +1276,7 @@ const App: React.FC = () => {
                         </div>
 
                         {/* IP Range Buttons - always visible below profiles grid */}
-                        <div className="mt-6 rounded-2xl overflow-hidden border border-theme-border-primary shadow-sm">
+                        <div id="ip-range-presets" className="mt-6 rounded-2xl overflow-hidden border border-theme-border-primary shadow-sm">
                           <IpRangeButtons
                             presets={ipRangePresets}
                             onUpdatePresets={setIpRangePresets}
@@ -1050,7 +1302,14 @@ const App: React.FC = () => {
               {view === 'tools-manager' && (<ToolsManager language={settings.language} settings={settings} onUpdateSettings={setSettings} availableTools={allTools} onSelectTool={setView} />)}
               {view === 'connectivity' && (
                 selectedInterface ? (
-                  <ConnectivityHub iface={selectedInterface} currentProfile={currentProfile} language={settings.language} targets={pingTargets} setTargets={setPingTargets} />
+                  <ConnectivityHub 
+                    iface={selectedInterface} 
+                    currentProfile={currentProfile} 
+                    language={settings.language} 
+                    targets={pingTargets} 
+                    setTargets={setPingTargets} 
+                    appMode={settings.appMode || 'basic'}
+                  />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-theme-text-muted border-2 border-dashed border-theme-border-primary rounded-2xl p-8 text-center">
                     <Activity size={48} className="mb-4 opacity-20" />
@@ -1090,56 +1349,98 @@ const App: React.FC = () => {
                   </div>
                 )
               )}
-              <div className={view === 'port-scanner' ? 'block' : 'hidden'}>
+              <div id="port-scan-presets" className={view === 'port-scanner' ? 'block' : 'hidden'}>
                 <PortScanner language={settings.language} initialIp={targetPortScannerIp} />
               </div>
-              {view === 'system' && (<SystemHealth language={settings.language} eggsActive={eggsActive} />)}
-              {view === 'system-events' && (<SystemEvents language={settings.language} />)}
+              {view === 'system' && (
+                <div id="system-health-grid">
+                  <SystemHealth language={settings.language} eggsActive={eggsActive} />
+                </div>
+              )}
+              {view === 'system-events' && (
+                <div id="system-events-container">
+                  <SystemEvents language={settings.language} />
+                </div>
+              )}
               {(view === 'win-shortcuts' || view === 'commands') && (
-                <WindowsShortcuts
-                  language={settings.language}
-                  iface={selectedInterface || undefined}
-                  onRenamePC={async () => {
-                    let currentName = '';
-                    try {
-                      if ((window as any).require) {
-                        const { ipcRenderer } = (window as any).require('electron');
-                        const stats = await ipcRenderer.invoke('get-system-stats');
-                        if (stats?.os?.computerName) currentName = stats.os.computerName;
-                      }
-                    } catch (e) { }
-                    setModalType('rename-pc');
-                    setModalInitialVal(currentName);
-                    setModalOpen(true);
-                  }}
-                />
+                <div id="win-shortcuts-grid">
+                  <WindowsShortcuts
+                    language={settings.language}
+                    iface={selectedInterface || undefined}
+                    onRenamePC={async () => {
+                      let currentName = '';
+                      try {
+                        if ((window as any).require) {
+                          const { ipcRenderer } = (window as any).require('electron');
+                          const stats = await ipcRenderer.invoke('get-system-stats');
+                          if (stats?.os?.computerName) currentName = stats.os.computerName;
+                        }
+                      } catch (e) { }
+                      setModalType('rename-pc');
+                      setModalInitialVal(currentName);
+                      setModalOpen(true);
+                    }}
+                  />
+                </div>
               )}
               {view === 'subnet' && <SubnetCalculator language={settings.language} />}
               {view === 'clipboard' && (
-                <ClipboardManager
-                  snippets={snippets}
-                  onAdd={(s) => setSnippets(prev => [...prev, s])}
-                  onUpdate={(s) => setSnippets(prev => prev.map(p => p.id === s.id ? s : p))}
-                  onDelete={(id) => setSnippets(prev => prev.filter(p => p.id !== id))}
-                  onReorder={(newSnippets) => setSnippets(newSnippets)}
-                  language={settings.language}
-                  onRequirePassword={(callback: () => void) => {
-                    if (settings.securityEnabled && settings.passwordProtectSnippets && settings.password) {
-                      setUnlockCallback(() => callback);
-                      setIsLocked(true);
-                      return true;
-                    }
-                    return false;
-                  }}
+                <div id="snippets-container">
+                  <ClipboardManager
+                    snippets={snippets}
+                    onAdd={(s) => setSnippets(prev => [...prev, s])}
+                    onUpdate={(s) => setSnippets(prev => prev.map(p => p.id === s.id ? s : p))}
+                    onDelete={(id) => setSnippets(prev => prev.filter(p => p.id !== id))}
+                    onReorder={(newSnippets) => setSnippets(newSnippets)}
+                    language={settings.language}
+                    onRequirePassword={(callback: () => void) => {
+                      if (settings.securityEnabled && settings.passwordProtectSnippets && settings.password) {
+                        setUnlockCallback(() => callback);
+                        setIsLocked(true);
+                        return true;
+                      }
+                      return false;
+                    }}
+                  />
+                </div>
+              )}
+              {view === 'internet' && (
+                <div id="internet-status-panel">
+                  <InternetStatus language={settings.language} />
+                </div>
+              )}
+              {view === 'credentials' && (
+                <CredentialLibrary 
+                  language={settings.language} 
+                  credentials={credentials} 
+                  onAdd={(c) => setCredentials([...credentials, c])} 
+                  onUpdate={(c) => setCredentials(credentials.map(x => x.id === c.id ? c : x))} 
+                  onDelete={(id) => setCredentials(credentials.filter(x => x.id !== id))} 
+                  onApplyProfile={handleApply} 
+                  onAutoConnect={handleAutoConnect} 
                 />
               )}
-              {view === 'internet' && <InternetStatus language={settings.language} />}
-              {view === 'credentials' && <CredentialLibrary language={settings.language} credentials={credentials} onAdd={(c) => setCredentials([...credentials, c])} onUpdate={(c) => setCredentials(credentials.map(x => x.id === c.id ? c : x))} onDelete={(id) => setCredentials(credentials.filter(x => x.id !== id))} onApplyProfile={handleApply} onAutoConnect={handleAutoConnect} />}
               {view === 'programs' && <InstalledPrograms language={settings.language} eggsActive={eggsActive} />}
-              {view === 'help' && <HelpGuide language={settings.language} />}
+              {view === 'help' && (
+                <HelpGuide 
+                  language={settings.language} 
+                  onLaunchTour={handleLaunchTour} 
+                  onResetSeenTours={handleResetSeenTours} 
+                />
+              )}
             </div>
           </div>
         </main>
+
+        {/* Interactive Onboarding Tour Overlay */}
+        {activeTour && (
+          <OnboardingTour
+            tour={activeTour}
+            language={settings.language}
+            onComplete={handleTourComplete}
+            onSkip={handleTourSkip}
+          />
+        )}
 
         <SettingsModal
           isOpen={isSettingsOpen}
@@ -1183,8 +1484,16 @@ const App: React.FC = () => {
 
         {
           profileToDelete && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-theme-bg-primary/60 backdrop-blur-sm animate-fade-in">
-              <div className="bg-theme-bg-secondary p-8 rounded-2xl shadow-2xl border border-theme-border-primary max-w-md w-full animate-in zoom-in-95 duration-300">
+            <div 
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setProfileToDelete(null);
+              }}
+            >
+              <div 
+                className="bg-theme-bg-secondary p-8 rounded-2xl shadow-2xl border border-theme-border-primary max-w-md w-full animate-in zoom-in-95 duration-300"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-center gap-4 text-rose-500 mb-6">
                   <div className="p-3 bg-rose-500/10 rounded-xl">
                     <AlertTriangle size={32} />
@@ -1205,8 +1514,16 @@ const App: React.FC = () => {
 
         {
           showProfilePicker && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-theme-bg-primary/70 backdrop-blur-md animate-fade-in">
-              <div className="bg-theme-bg-secondary w-full max-w-md rounded-3xl shadow-2xl border border-theme-border-primary overflow-hidden">
+            <div 
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setShowProfilePicker(false);
+              }}
+            >
+              <div 
+                className="bg-theme-bg-secondary w-full max-w-md rounded-3xl shadow-2xl border border-theme-border-primary overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="p-6 border-b border-theme-border-secondary flex justify-between items-center bg-theme-bg-tertiary">
                   <div>
                     <h3 className="font-bold text-xl text-theme-text-primary">{t.pinToProfile}</h3>
@@ -1246,8 +1563,16 @@ const App: React.FC = () => {
 
         {
           conflictResolutionState && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-theme-bg-primary/70 backdrop-blur-md animate-fade-in">
-              <div className="bg-theme-bg-secondary w-full max-w-lg rounded-3xl shadow-2xl border border-theme-border-primary overflow-hidden animate-in zoom-in-95 duration-300">
+            <div 
+              className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setConflictResolutionState(null);
+              }}
+            >
+              <div 
+                className="bg-theme-bg-secondary w-full max-w-lg rounded-3xl shadow-2xl border border-theme-border-primary overflow-hidden animate-in zoom-in-95 duration-300"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="p-6 border-b border-theme-border-secondary flex justify-between items-center bg-theme-bg-tertiary">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-500">
@@ -1404,8 +1729,16 @@ const App: React.FC = () => {
 
         {
           showAdminPrompt && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-theme-bg-primary/70 backdrop-blur-sm animate-fade-in">
-              <div className="bg-theme-bg-secondary p-8 rounded-2xl shadow-2xl max-w-md border border-theme-border-primary">
+            <div 
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setShowAdminPrompt(false);
+              }}
+            >
+              <div 
+                className="bg-theme-bg-secondary p-8 rounded-2xl shadow-2xl max-w-md border border-theme-border-primary"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-center gap-4 mb-6">
                   <div className="p-3 bg-theme-brand-primary/10 text-theme-brand-primary rounded-xl">
                     <Shield size={28} />
@@ -1441,6 +1774,7 @@ const App: React.FC = () => {
           message={modalType === 'backup-encrypt' || modalType === 'backup-decrypt' ? t.enterPasswordDesc : modalType === 'rename-pc' ? t.changeNameMessage : ''}
           defaultValue={modalInitialVal}
           placeholder={modalType === 'rename-pc' ? t.name : t.password}
+          label={modalType === 'rename-pc' ? (t.name || 'Nombre del equipo') : (t.password || 'Contraseña')}
           isPassword={modalType.startsWith('backup')}
           onConfirm={async (val) => {
             if (modalType === 'backup-encrypt') {

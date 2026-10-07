@@ -1,10 +1,13 @@
 import React from 'react';
-import { Minus, Square, X } from 'lucide-react';
+import { Minus, Square, X, Zap, Settings as SettingsIcon } from 'lucide-react';
 import { APP_VERSION } from '../constants';
 
 interface TitleBarProps {
     theme?: string;
     t: any;
+    appMode?: 'basic' | 'advanced';
+    onToggleAppMode?: (mode: 'basic' | 'advanced') => void;
+    onOpenSettings?: () => void;
 }
 
 const themeIconMap: Record<string, string> = {
@@ -14,7 +17,7 @@ const themeIconMap: Record<string, string> = {
     sakura: './Sakura.PNG',
 };
 
-export const TitleBar: React.FC<TitleBarProps> = ({ theme = 'dark', t }) => {
+export const TitleBar: React.FC<TitleBarProps> = ({ theme = 'dark', t, appMode, onToggleAppMode, onOpenSettings }) => {
     const [, setClickCount] = React.useState(0);
     const [appUpdate, setAppUpdate] = React.useState<any>(null);
     const clickTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -110,7 +113,50 @@ export const TitleBar: React.FC<TitleBarProps> = ({ theme = 'dark', t }) => {
                 </span>
             </div>
 
+            {/* Mode Switcher Pill */}
+            {onToggleAppMode && (
+                <div 
+                    id="mode-switcher"
+                    className="flex items-center gap-1 p-0.5 rounded-full bg-theme-bg-tertiary border border-theme-border-primary/60 shadow-inner select-none cursor-pointer"
+                    style={{ WebkitAppRegion: 'no-drag' } as any}
+                >
+                    <button
+                        onClick={() => onToggleAppMode('basic')}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold transition-all duration-300 flex items-center gap-1 ${
+                            appMode === 'basic'
+                                ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+                                : 'text-theme-text-muted hover:text-theme-text-primary'
+                        }`}
+                        title={t.basicModeTitle || 'Modo Básico: Herramientas esenciales y seguras'}
+                    >
+                        <span className={`w-1.5 h-1.5 rounded-full ${appMode === 'basic' ? 'bg-white' : 'bg-emerald-500'}`} />
+                        <span>{t.basicMode || 'Básico'}</span>
+                    </button>
+                    <button
+                        onClick={() => onToggleAppMode('advanced')}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold transition-all duration-300 flex items-center gap-1 ${
+                            appMode === 'advanced'
+                                ? 'bg-theme-brand-primary text-white shadow-md shadow-theme-brand-primary/20'
+                                : 'text-theme-text-muted hover:text-theme-text-primary'
+                        }`}
+                        title={t.advancedModeTitle || 'Modo Avanzado: Todas las herramientas disponibles'}
+                    >
+                        <Zap size={10} className={appMode === 'advanced' ? 'text-amber-300' : 'text-theme-brand-primary'} />
+                        <span>{t.advancedMode || 'Avanzado'}</span>
+                    </button>
+                </div>
+            )}
+
             <div className="flex items-stretch h-full" style={{ WebkitAppRegion: 'no-drag' } as any}>
+                {onOpenSettings && (
+                    <button
+                        onClick={onOpenSettings}
+                        className="px-3 hover:bg-theme-bg-hover text-theme-text-muted hover:text-theme-text-primary transition-colors flex items-center justify-center focus:outline-none"
+                        title={t.systemSettings || "Ajustes"}
+                    >
+                        <SettingsIcon size={14} className="hover:rotate-45 transition-transform duration-300" />
+                    </button>
+                )}
                 <button
                     onClick={() => handleAction('minimize')}
                     className="px-4 hover:bg-theme-bg-hover text-theme-text-muted hover:text-theme-text-primary transition-colors flex items-center justify-center focus:outline-none"

@@ -127,7 +127,7 @@ export const CredentialLibrary: React.FC<CredentialLibraryProps> = ({
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="flex-1 relative">
+          <div className="flex-1 relative" id="credential-search-box">
             <div className="absolute left-3 top-3 text-theme-text-muted">
               <Search size={20} />
             </div>
@@ -159,19 +159,20 @@ export const CredentialLibrary: React.FC<CredentialLibraryProps> = ({
       {/* Grid List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredCredentials.length > 0 ? (
-          filteredCredentials.map(cred => (
+          filteredCredentials.map((cred, idx) => (
             <div
               key={cred.id}
-              className="bg-theme-bg-secondary border border-theme-border-primary rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow group relative"
+              id={idx === 0 ? 'credential-card-first' : undefined}
+              className="bg-theme-bg-secondary border border-theme-border-primary rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow group relative"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-theme-bg-tertiary rounded-lg">
+                  <div className="p-2.5 bg-theme-bg-tertiary rounded-xl">
                     {getIcon(cred.type)}
                   </div>
                   <div>
                     <h3 className="font-bold text-theme-text-primary">{cred.vendor}</h3>
-                    <p className="text-xs text-theme-text-muted">{cred.model}</p>
+                    <p className="text-xs text-theme-text-muted">{cred.model || 'Dispositivo'}</p>
                   </div>
                 </div>
 
@@ -179,71 +180,78 @@ export const CredentialLibrary: React.FC<CredentialLibraryProps> = ({
                   <button
                     onClick={() => openEditModal(cred)}
                     className="p-2 text-theme-text-muted hover:text-theme-brand-primary hover:bg-theme-bg-hover rounded-lg transition-colors"
+                    title={t.edit || "Editar"}
                   >
-                    <Edit2 size={16} />
+                    <Edit2 size={15} />
                   </button>
                   <button
                     onClick={() => setCredToDelete({ id: cred.id, name: cred.vendor })}
                     className="p-2 text-theme-text-muted hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                    title={t.delete || "Eliminar"}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} />
                   </button>
                   <button
                     onClick={() => onAutoConnect(cred.ip, false)}
                     className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 rounded-lg transition-colors"
-                    title={t.smartConnectNoBrowser || 'Auto-connect (Change IP only)'}
+                    title={t.smartConnectNoBrowser || 'Auto-connect (Cambiar IP)'}
                   >
-                    <Zap size={16} fill="currentColor" />
+                    <Zap size={15} fill="currentColor" />
                   </button>
                   <button
                     onClick={() => onAutoConnect(cred.ip, true)}
                     className="p-2 bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 hover:bg-sky-200 rounded-lg transition-colors"
-                    title={t.smartConnectWithBrowser || 'Auto-connect & Open Web'}
+                    title={t.smartConnectWithBrowser || 'Auto-conectar y abrir web'}
                   >
-                    <Globe size={16} />
+                    <Globe size={15} />
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-2 bg-theme-bg-tertiary rounded-lg p-3 border border-theme-border-secondary">
+              <div className="space-y-2 bg-theme-bg-tertiary rounded-xl p-3 border border-theme-border-secondary">
                 {/* IP Row */}
                 <div className="flex justify-between items-center group/item">
-                  <span className="text-xs font-semibold text-theme-text-muted uppercase w-16">{t.ipAddress}</span>
+                  <span className="text-[11px] font-bold text-theme-text-muted uppercase w-16">{t.ipAddress}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono font-medium text-theme-text-primary">{cred.ip}</span>
+                    <span className="text-sm font-mono font-bold text-theme-text-primary">{cred.ip}</span>
                     <button
                       onClick={() => handleCopy(cred.ip, `ip-${cred.id}`, t.ipAddress)}
-                      className="opacity-0 group-hover/item:opacity-100 transition-opacity text-theme-text-muted hover:text-theme-brand-primary"
+                      className="p-1 rounded text-theme-text-muted hover:text-theme-brand-primary hover:bg-theme-bg-secondary transition-colors"
+                      title="Copiar IP"
                     >
-                      {copiedId === `ip-${cred.id}` ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                      {copiedId === `ip-${cred.id}` ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                     </button>
                   </div>
                 </div>
 
                 {/* User Row */}
                 <div className="flex justify-between items-center group/item">
-                  <span className="text-xs font-semibold text-theme-text-muted uppercase w-16">{t.username}</span>
+                  <span className="text-[11px] font-bold text-theme-text-muted uppercase w-16">{t.username}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-mono text-theme-text-secondary">{cred.username}</span>
                     <button
                       onClick={() => handleCopy(cred.username, `user-${cred.id}`, t.username)}
-                      className="opacity-0 group-hover/item:opacity-100 transition-opacity text-theme-text-muted hover:text-theme-brand-primary"
+                      className="p-1 rounded text-theme-text-muted hover:text-theme-brand-primary hover:bg-theme-bg-secondary transition-colors"
+                      title="Copiar Usuario"
                     >
-                      {copiedId === `user-${cred.id}` ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                      {copiedId === `user-${cred.id}` ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                     </button>
                   </div>
                 </div>
 
-                {/* Pass Row */}
+                {/* Pass Row with Masking */}
                 <div className="flex justify-between items-center group/item">
-                  <span className="text-xs font-semibold text-theme-text-muted uppercase w-16">{t.password}</span>
+                  <span className="text-[11px] font-bold text-theme-text-muted uppercase w-16">{t.password}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono text-theme-text-secondary">{cred.password}</span>
+                    <span className="text-sm font-mono text-theme-text-secondary tracking-wider">
+                      {cred.password ? '••••••••' : '(sin contraseña)'}
+                    </span>
                     <button
                       onClick={() => handleCopy(cred.password, `pass-${cred.id}`, t.password)}
-                      className="opacity-0 group-hover/item:opacity-100 transition-opacity text-theme-text-muted hover:text-theme-brand-primary"
+                      className="p-1 rounded text-theme-text-muted hover:text-theme-brand-primary hover:bg-theme-bg-secondary transition-colors"
+                      title="Copiar Contraseña"
                     >
-                      {copiedId === `pass-${cred.id}` ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                      {copiedId === `pass-${cred.id}` ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                     </button>
                   </div>
                 </div>

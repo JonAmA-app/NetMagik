@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { NetworkInterface, Language, ScannedDevice, Profile } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { useToast } from '../context/ToastContext';
-import { getVendor, mergeVendorData } from '../mac-vendors';
+import { getVendor, mergeVendorData, getLastOuiUpdateDate } from '../mac-vendors';
 import { Radar, Globe, ArrowRight, Activity, DownloadCloud, ArrowUpDown, Copy, Check, Shield, Plus, Loader2, Square, Sparkles, AlertCircle, Shuffle, RefreshCw, Power } from 'lucide-react';
 
 interface NetworkScannerProps {
@@ -49,7 +49,8 @@ const OctetInput = ({
 export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language, scannedDevices, setScannedDevices, isScanning, setIsScanning, progress, setProgress, onDiagnose, onScanPorts, onSaveToProfile, onSaveAllToProfile, profiles = [], referenceProfileId, setReferenceProfileId }) => {
     const t = TRANSLATIONS[language] || TRANSLATIONS['en'];
     const { success, error } = useToast();
-    const [dbUpdated, setDbUpdated] = useState(false);
+    const [dbUpdated, setDbUpdated] = useState(() => !!getLastOuiUpdateDate());
+    const [ouiLoading, setOuiLoading] = useState(false);
     const [copiedIp, setCopiedIp] = useState<string | null>(null);
     const [scanProgressInfo, setScanProgressInfo] = useState({ current: 0, total: 0 });
 
@@ -76,38 +77,24 @@ export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language,
 
             window.electronAPI.onScanRangeProgress(progressHandler);
 
-            const fetchOUI = async () => {
-                try {
-                    const result = await window.electronAPI.fetchOuiDatabase();
-                    if (result.success && result.data) {
-                        mergeVendorData(result.data);
-                        setDbUpdated(true);
-                    }
-                } catch (e) { }
-            };
-
-            if (!dbUpdated) {
-                fetchOUI();
-            }
-
             return () => {
                 window.electronAPI.removeListeners('scan-range-progress');
             };
         }
-    }, [dbUpdated, setProgress]);
+    }, [setProgress]);
 
     const handleUpdateOUI = async () => {
-        if (window.electronAPI) {
-            setDbUpdated(false);
-            try {
-                const result = await window.electronAPI.fetchOuiDatabase();
-                if (result.success && result.data) {
-                    mergeVendorData(result.data);
-                    setDbUpdated(true);
-                    success(t.ieeeOuiLoaded);
-                }
-            } catch (e) { }
-        }
+        if (!window.electronAPI || ouiLoading) return;
+        setOuiLoading(true);
+        try {
+            const result = await window.electronAPI.fetchOuiDatabase();
+            if (result.success && result.data) {
+                mergeVendorData(result.data);
+                setDbUpdated(true);
+                success(t.ieeeOuiLoaded);
+            }
+        } catch (e) { }
+        finally { setOuiLoading(false); }
     };
 
     useEffect(() => {
@@ -359,19 +346,32 @@ export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language,
                         </p>
                         
                         <div className="flex items-center gap-3 pt-2">
-                            {dbUpdated ? (
+                            {ouiLoading ? (
+                                <button
+                                    disabled
+                                    className="neo-button inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-theme-bg-tertiary text-theme-text-muted border border-theme-border-primary text-[11px] font-bold cursor-not-allowed"
+                                >
+                                    <RefreshCw size={14} className="animate-spin" /> {t.loading}
+                                </button>
+                            ) : dbUpdated ? (
                                 <button
                                     onClick={handleUpdateOUI}
+                                    title={`${t.ieeeOuiLoaded}${getLastOuiUpdateDate() ? ` · ${new Date(getLastOuiUpdateDate()!).toLocaleDateString()}` : ''}`}
                                     className="neo-button inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[11px] font-bold"
                                 >
                                     <DownloadCloud size={14} /> {t.ieeeOuiLoaded}
+                                    {getLastOuiUpdateDate() && (
+                                        <span className="opacity-60 font-normal">
+                                            · {new Date(getLastOuiUpdateDate()!).toLocaleDateString()}
+                                        </span>
+                                    )}
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleUpdateOUI}
                                     className="neo-button inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-theme-bg-tertiary text-theme-text-muted border border-theme-border-primary text-[11px] font-bold"
                                 >
-                                    <RefreshCw size={14} className="animate-spin" /> {t.loading}
+                                    <DownloadCloud size={14} /> {t.ieeeOuiLoaded || 'Update Vendor DB'}
                                 </button>
                             )}
                             
@@ -470,7 +470,7 @@ export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language,
                                     </div>
                                 </div>
                             ) : (
-                                <div className="relative z-10">
+                                <div className="relative z-10" id="scan-action-btn">
                                     <div className="absolute inset-0 -m-1 rounded-[1.25rem] bg-gradient-to-r from-theme-brand-primary via-theme-brand-hover to-theme-brand-primary opacity-0 group-hover/btn:opacity-30 blur-sm transition-opacity pointer-events-none" />
                                     <button
                                         onClick={handleScan}
@@ -556,7 +556,7 @@ export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language,
                     </div>
                 </div>
 
-                <div className="bg-theme-bg-secondary border border-theme-border-primary rounded-[2rem] overflow-hidden shadow-2xl">
+                <div id="scanned-devices-table" className="bg-theme-bg-secondary border border-theme-border-primary rounded-[2rem] overflow-hidden shadow-2xl">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead>
@@ -606,7 +606,7 @@ export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language,
                                                     </div>
                                                     
                                                     <div className="flex items-center gap-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                                                        <button onClick={() => copyIp(device.ip)} className="p-1.5 rounded-lg hover:bg-theme-bg-tertiary text-theme-text-muted hover:text-theme-brand-primary transition-all">
+                                                        <button onClick={() => copyIp(device.ip)} className="p-1.5 rounded-lg hover:bg-theme-bg-tertiary text-theme-text-muted hover:text-theme-brand-primary transition-all" title="Copiar IP">
                                                             {copiedIp === device.ip ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                                                         </button>
                                                     </div>
@@ -630,7 +630,7 @@ export const NetworkScanner: React.FC<NetworkScannerProps> = ({ iface, language,
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5 text-right">
-                                                <div className="flex items-center justify-end gap-1 opacity-40 group-hover/row:opacity-100 transition-all transform translate-x-2 group-hover/row:translate-x-0">
+                                                <div id={idx === 0 ? "scanned-quick-actions" : undefined} className="flex items-center justify-end gap-1 opacity-40 group-hover/row:opacity-100 transition-all transform translate-x-2 group-hover/row:translate-x-0">
                                                     <button onClick={() => onScanPorts(device.ip)} className="p-2 text-theme-text-muted hover:text-orange-500 hover:bg-orange-500/10 rounded-xl transition-all" title={t.portScanner}>
                                                         <Shield size={18} />
                                                     </button>

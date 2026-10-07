@@ -962,6 +962,24 @@ ipcMain.handle('get-windows-interfaces', async () => {
                     });
                 }
             }
+
+            // Prioritize Wired Physical Ethernet first, Virtual Adapters middle, Wi-Fi LAST
+            interfaces.sort((a, b) => {
+                const getPrio = (iface) => {
+                    const nameLower = (iface.name || '').toLowerCase();
+                    const isWifi = nameLower.includes('wi-fi') || nameLower.includes('wifi') || nameLower.includes('wlan') || nameLower.includes('inalámbrica') || nameLower.includes('inalambrica') || nameLower.includes('wireless') || nameLower.includes('802.11');
+                    const isConn = (iface.connectionState || '').toLowerCase().includes('connect') || (iface.connectionState || '').toLowerCase().includes('conect') || (iface.ip && iface.ip !== '0.0.0.0');
+
+                    if (isWifi) return isConn ? 40 : 41; // Wi-Fi is LAST
+                    if (iface.isVirtual) return isConn ? 30 : 31;
+                    return isConn ? 10 : 11; // Wired Ethernet is FIRST
+                };
+                const prioA = getPrio(a);
+                const prioB = getPrio(b);
+                if (prioA !== prioB) return prioA - prioB;
+                return a.name.localeCompare(b.name);
+            });
+
             resolve(interfaces);
         });
     });

@@ -56,8 +56,16 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     const style = variantStyles[variant];
 
     return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-theme-bg-primary/70 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-theme-bg-secondary w-full max-w-md rounded-2xl shadow-2xl border border-theme-border-primary overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
+        <div 
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
+            <div 
+                className="bg-theme-bg-secondary w-full max-w-md rounded-2xl shadow-2xl border border-theme-border-primary overflow-hidden scale-100 animate-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-4">

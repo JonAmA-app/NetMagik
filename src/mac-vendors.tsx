@@ -115,9 +115,44 @@ const MAC_DB: Record<string, string> = {
     '00409D': 'Digi International',
 };
 
-// Function to update the DB at runtime (merged from external source)
+const OUI_CACHE_KEY = 'netmajik_custom_oui_db';
+const OUI_UPDATE_DATE_KEY = 'netmajik_oui_last_updated';
+
+// Initialize from local storage if available
+export const initVendorDatabase = () => {
+    try {
+        const cached = localStorage.getItem(OUI_CACHE_KEY);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && typeof parsed === 'object') {
+                Object.assign(MAC_DB, parsed);
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to load cached OUI database', e);
+    }
+};
+
+// Auto-run init on module load
+initVendorDatabase();
+
+// Function to update the DB at runtime (merged from external source) and persist locally
 export const mergeVendorData = (newVendors: Record<string, string>) => {
     Object.assign(MAC_DB, newVendors);
+    try {
+        localStorage.setItem(OUI_CACHE_KEY, JSON.stringify(newVendors));
+        localStorage.setItem(OUI_UPDATE_DATE_KEY, new Date().toISOString());
+    } catch (e) {
+        console.warn('Failed to cache OUI database to localStorage', e);
+    }
+};
+
+export const getLastOuiUpdateDate = (): string | null => {
+    try {
+        return localStorage.getItem(OUI_UPDATE_DATE_KEY);
+    } catch (e) {
+        return null;
+    }
 };
 
 export const getVendor = (mac: string): string => {
@@ -143,3 +178,4 @@ export const getVendor = (mac: string): string => {
 
     return 'Unknown';
 };
+

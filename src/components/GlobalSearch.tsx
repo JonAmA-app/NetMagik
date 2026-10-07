@@ -97,13 +97,14 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
             profile.devices?.forEach(device => {
                 if (
                     device.name.toLowerCase().includes(searchTerm) ||
-                    device.ip.toLowerCase().includes(searchTerm)
+                    device.ip.toLowerCase().includes(searchTerm) ||
+                    (device.mac && device.mac.toLowerCase().replace(/[:\-]/g, '').includes(searchTerm.replace(/[:\-]/g, '')))
                 ) {
                     allResults.push({
                         id: device.id,
                         type: 'device',
                         title: device.name,
-                        subtitle: `${device.ip} • ${profile.name} `,
+                        subtitle: `${device.ip}${device.mac ? ' • ' + device.mac : ''} • ${profile.name} `,
                         icon: <Server size={18} className="text-theme-brand-primary" />,
                         profileId: profile.id
                     });

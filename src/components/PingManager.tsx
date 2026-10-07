@@ -577,7 +577,7 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
                 </div>
 
                 {/* Input Area */}
-                <div className="bg-theme-bg-tertiary rounded-lg p-4 border border-theme-border-secondary">
+                <div className="bg-theme-bg-tertiary rounded-xl p-4 border border-theme-border-secondary" id="ping-input-box">
                     {mode === 'list' ? (
                         <form onSubmit={addManualIp} className="flex gap-2">
                             <div className="relative flex-1">
@@ -585,11 +585,38 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
                                     type="text"
                                     value={manualIp}
                                     onChange={(e) => setManualIp(e.target.value)}
-                                    placeholder={t.ipPlaceholder}
-                                    className="w-full h-10 px-3 bg-theme-bg-primary border border-theme-border-primary rounded-lg text-sm font-mono focus:outline-none focus:border-theme-brand-primary text-theme-text-primary placeholder-theme-text-muted"
+                                    placeholder={t.ipPlaceholder || "192.168.1.1 o google.com"}
+                                    className="w-full h-11 px-4 bg-theme-bg-primary border border-theme-border-primary rounded-xl text-sm font-mono focus:outline-none focus:border-theme-brand-primary text-theme-text-primary placeholder-theme-text-muted transition-all"
                                 />
                             </div>
-                            <button type="submit" disabled={!manualIp} className="h-10 px-4 bg-theme-brand-primary hover:bg-theme-brand-hover text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    try {
+                                        const text = await navigator.clipboard.readText();
+                                        if (text && text.trim()) {
+                                            setManualIp(text.trim());
+                                            const targetExists = targets.some(t => t.ip === text.trim());
+                                            if (!targetExists) {
+                                                const newTarget: PingTarget = {
+                                                    ip: text.trim(),
+                                                    status: 'unknown' as any,
+                                                    lastResponse: t.ready || 'Listo...',
+                                                    history: [],
+                                                    stats: { sent: 0, received: 0, min: 0, max: 0, avg: 0, lastLatency: 0, loss: 0 }
+                                                };
+                                                setTargets(prev => [...prev, newTarget]);
+                                            }
+                                            if (!isRunning) startPing();
+                                        }
+                                    } catch (e) {}
+                                }}
+                                className="h-11 px-3 bg-theme-bg-primary hover:bg-theme-bg-hover text-theme-text-muted hover:text-theme-brand-primary rounded-xl border border-theme-border-primary text-xs font-bold transition-colors flex items-center gap-1.5"
+                                title="Pegar del portapapeles y probar"
+                            >
+                                📋 {'Pegar y Probar'}
+                            </button>
+                            <button type="submit" disabled={!manualIp} className="h-11 px-5 bg-theme-brand-primary hover:bg-theme-brand-hover text-white rounded-xl flex items-center gap-2 text-sm font-bold shadow-lg shadow-theme-brand-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                                 <Plus size={16} />
                                 {t.addIp}
                             </button>
@@ -626,7 +653,7 @@ export const PingManager: React.FC<PingManagerProps> = ({ iface, language, targe
             )}
 
             {/* Results Table */}
-            <div className={`bg-theme-bg-secondary border border-theme-border-primary rounded-xl overflow-hidden shadow-sm flex flex-col ${isZenMode ? 'flex-1 h-full' : 'min-h-[300px]'}`}>
+            <div id="ping-results-area" className={`bg-theme-bg-secondary border border-theme-border-primary rounded-2xl overflow-hidden shadow-sm flex flex-col ${isZenMode ? 'flex-1 h-full' : 'min-h-[300px]'}`}>
                 <div className="p-4 border-b border-theme-border-secondary flex items-center justify-between bg-theme-bg-tertiary">
                     <div className="flex items-center gap-3">
                         <h4 className="font-semibold text-theme-text-primary flex items-center gap-2">
